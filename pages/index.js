@@ -1,5 +1,7 @@
-import { FileText, Zap, Target, Star, Twitter, Linkedin, Github, Youtube } from 'lucide-react';
+import { FileText, Zap, Target, Star, Twitter, Linkedin, Github, Youtube, LogOut, FileText as FileIcon, Clock, User } from 'lucide-react';
 import Link from 'next/link';
+import { useState, useRef, useEffect } from 'react';
+import { useSession, signOut } from 'next-auth/react';
 
 const NAV_LINKS = [
   { label: 'Features', href: '#features' },
@@ -37,7 +39,95 @@ function Logo() {
   );
 }
 
-function GradBtn({ children, href, onClick, className = '' }) {
+function UserMenu() {
+  const { data: session } = useSession();
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  if (!session) return <Link href="/signup" className="text-white/60 hover:text-white text-sm font-medium transition-colors duration-200">Sign up</Link>;
+
+  const initial = session.user?.name?.[0]?.toUpperCase() || '?';
+  const name = session.user?.name || 'User';
+  const email = session.user?.email || '';
+  const avatar = session.user?.image;
+
+  return (
+    <div className="relative" ref={ref}>
+      <button onClick={() => setOpen(o => !o)} className="w-9 h-9 rounded-full overflow-hidden border-2 border-white/20 hover:border-white/50 transition-colors duration-200 flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #34d399, #06b6d4)' }}>
+        {avatar ? <img src={avatar} alt={name} className="w-full h-full object-cover" /> : <span className="text-black text-sm font-bold">{initial}</span>}
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-12 w-72 z-50" style={{
+          background: 'rgba(10,10,10,0.85)',
+          backdropFilter: 'blur(32px)',
+          WebkitBackdropFilter: 'blur(32px)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          boxShadow: '0 16px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)',
+          borderRadius: '20px',
+        }}>
+          {/* Profile */}
+          <div className="px-5 py-4 border-b border-white/8">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #34d399, #06b6d4)' }}>
+                {avatar ? <img src={avatar} alt={name} className="w-full h-full object-cover" /> : <span className="text-black text-sm font-bold">{initial}</span>}
+              </div>
+              <div className="min-w-0">
+                <p className="text-white text-sm font-semibold truncate">{name}</p>
+                <p className="text-white/40 text-xs truncate">{email}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="px-5 py-4 border-b border-white/8">
+            <p className="text-white/30 text-[10px] tracking-[0.15em] uppercase mb-3">Your Activity</p>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { label: 'Resumes', value: '0' },
+                { label: 'Downloads', value: '0' },
+                { label: 'Days active', value: '1' },
+              ].map(({ label, value }) => (
+                <div key={label} className="text-center rounded-xl py-2.5" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                  <p className="text-white font-bold text-base">{value}</p>
+                  <p className="text-white/35 text-[10px]">{label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Menu items */}
+          <div className="px-3 py-3 flex flex-col gap-1">
+            <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/6 transition-all duration-150 text-sm text-left">
+              <FileIcon className="w-4 h-4" /> My Resumes
+            </button>
+            <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/6 transition-all duration-150 text-sm text-left">
+              <Clock className="w-4 h-4" /> Recent Activity
+            </button>
+            <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/6 transition-all duration-150 text-sm text-left">
+              <User className="w-4 h-4" /> Account
+            </button>
+            <div className="h-px bg-white/8 my-1" />
+            <button onClick={() => signOut({ callbackUrl: '/' })} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-400/70 hover:text-red-400 hover:bg-red-400/8 transition-all duration-150 text-sm text-left">
+              <LogOut className="w-4 h-4" /> Sign out
+            </button>
+          </div>
+
+        </div>
+      )}
+    </div>
+  );
+}
+
+({ children, href, onClick, className = '' }) {
   const base = `bg-gradient-to-r from-emerald-400 to-cyan-500 text-black font-semibold rounded-full flex items-center gap-2 transition-opacity hover:opacity-90 ${className}`;
   if (href) return <Link href={href} className={base}>{children}</Link>;
   return <button onClick={onClick} className={base}>{children}</button>;
@@ -58,8 +148,7 @@ export default function Home() {
         {/* NAV */}
         <nav className="flex items-center justify-between px-2 md:px-6 lg:px-8 py-5">
           <Logo />
-
-
+          <UserMenu />
         </nav>
 
         {/* HERO */}
