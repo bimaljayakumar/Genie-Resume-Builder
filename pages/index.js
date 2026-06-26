@@ -127,7 +127,7 @@ function UserMenu() {
   );
 }
 
-({ children, href, onClick, className = '' }) {
+function GradBtn({ children, href, onClick, className = '' }) {
   const base = `bg-gradient-to-r from-emerald-400 to-cyan-500 text-black font-semibold rounded-full flex items-center gap-2 transition-opacity hover:opacity-90 ${className}`;
   if (href) return <Link href={href} className={base}>{children}</Link>;
   return <button onClick={onClick} className={base}>{children}</button>;
