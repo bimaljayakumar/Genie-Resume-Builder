@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/router';
-import { Send, Sparkles, FileText, Download, Eye, LogOut, ChevronDown, Loader2 } from 'lucide-react';
+import { Send, Sparkles, FileText, Download, Eye, LogOut, ChevronDown, Loader2, History, Trash2, X, Clock } from 'lucide-react';
 
 const FONT = '"Helvetica Now Var", Helvetica, Arial, sans-serif';
 
@@ -21,7 +21,23 @@ const GLASS = {
   boxShadow: '0 8px 48px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)',
 };
 
-function UserMenu({ session }) {
+const DARK_GLASS = {
+  background: 'rgba(8,8,8,0.88)',
+  backdropFilter: 'blur(40px)',
+  WebkitBackdropFilter: 'blur(40px)',
+  border: '1px solid rgba(255,255,255,0.08)',
+  boxShadow: '0 16px 64px rgba(0,0,0,0.6)',
+};
+
+function timeAgo(ts) {
+  const diff = Math.floor((Date.now() - ts) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function UserMenu({ session, onHistoryClick }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -52,12 +68,27 @@ function UserMenu({ session }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-12 w-60 z-50 rounded-2xl overflow-hidden" style={{ ...GLASS, background: 'rgba(8,8,8,0.9)' }}>
-          <div className="px-4 py-3.5 border-b border-white/8">
-            <p className="text-white text-sm font-semibold truncate">{name}</p>
-            <p className="text-white/35 text-xs truncate">{email}</p>
+        <div className="absolute right-0 top-12 w-64 z-50 rounded-2xl overflow-hidden" style={DARK_GLASS}>
+          {/* Profile */}
+          <div className="px-4 py-4 border-b border-white/8 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg,#34d399,#06b6d4)' }}>
+              {avatar ? <img src={avatar} alt={name} className="w-full h-full object-cover" /> : <span className="text-black text-sm font-bold">{initial}</span>}
+            </div>
+            <div className="min-w-0">
+              <p className="text-white text-sm font-semibold truncate">{name}</p>
+              <p className="text-white/35 text-xs truncate">{email}</p>
+            </div>
           </div>
-          <div className="p-2">
+
+          {/* Actions */}
+          <div className="p-2 flex flex-col gap-0.5">
+            <button
+              onClick={() => { setOpen(false); onHistoryClick(); }}
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/6 transition-all duration-150 text-sm text-left"
+            >
+              <History className="w-4 h-4" /> Search History
+            </button>
+            <div className="h-px bg-white/8 my-1" />
             <button
               onClick={() => signOut({ callbackUrl: '/' })}
               className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-red-400/70 hover:text-red-400 hover:bg-red-400/8 transition-all duration-150 text-sm text-left"
@@ -71,18 +102,103 @@ function UserMenu({ session }) {
   );
 }
 
+function HistoryDrawer({ open, onClose, history, onSelect, onDelete, onClear }) {
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        className="fixed inset-0 z-40 transition-opacity duration-300"
+        style={{ background: 'rgba(0,0,0,0.4)', opacity: open ? 1 : 0, pointerEvents: open ? 'auto' : 'none' }}
+      />
+
+      {/* Drawer */}
+      <div
+        className="fixed top-0 right-0 h-full w-full max-w-sm z-50 flex flex-col transition-transform duration-300 ease-out"
+        style={{ ...DARK_GLASS, transform: open ? 'translateX(0)' : 'translateX(100%)' }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-5 border-b border-white/8">
+          <div className="flex items-center gap-2">
+            <History className="w-4 h-4 text-emerald-400" />
+            <span className="text-white font-semibold text-sm">Search History</span>
+            {history.length > 0 && (
+              <span className="text-white/30 text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }}>{history.length}</span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {history.length > 0 && (
+              <button onClick={onClear} className="text-white/30 hover:text-red-400 text-xs transition-colors duration-150 flex items-center gap-1">
+                <Trash2 className="w-3.5 h-3.5" /> Clear all
+              </button>
+            )}
+            <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-white hover:bg-white/8 transition-all duration-150">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* List */}
+        <div className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-1.5">
+          {history.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 py-16">
+              <Clock className="w-8 h-8 text-white/15" />
+              <p className="text-white/25 text-sm text-center">No history yet.<br />Build your first resume!</p>
+            </div>
+          ) : (
+            history.map((item) => (
+              <div
+                key={item.id}
+                className="group flex items-start gap-3 px-3 py-3 rounded-xl cursor-pointer transition-all duration-150 hover:bg-white/6"
+                onClick={() => { onSelect(item.prompt); onClose(); }}
+              >
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'rgba(52,211,153,0.12)' }}>
+                  <FileText className="w-3.5 h-3.5 text-emerald-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white/75 text-xs leading-relaxed line-clamp-2">{item.prompt}</p>
+                  <p className="text-white/25 text-[10px] mt-1">{timeAgo(item.timestamp)}</p>
+                </div>
+                <button
+                  onClick={e => { e.stopPropagation(); onDelete(item.id); }}
+                  className="opacity-0 group-hover:opacity-100 w-6 h-6 flex items-center justify-center rounded-lg text-white/30 hover:text-red-400 hover:bg-red-400/10 transition-all duration-150 flex-shrink-0"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [pdfUrl, setPdfUrl] = useState(null);
-  const [stage, setStage] = useState('idle'); // idle | generating | done
+  const [stage, setStage] = useState('idle');
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [history, setHistory] = useState([]);
   const textareaRef = useRef(null);
+
+  const storageKey = session?.user?.email ? `genie_history_${session.user.email}` : null;
 
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/signup');
   }, [status]);
+
+  useEffect(() => {
+    if (storageKey) {
+      try {
+        const saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        setHistory(saved);
+      } catch { setHistory([]); }
+    }
+  }, [storageKey]);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -91,11 +207,31 @@ export default function Dashboard() {
     }
   }, [prompt]);
 
+  function saveToHistory(text) {
+    if (!storageKey) return;
+    const entry = { id: Date.now(), prompt: text, timestamp: Date.now() };
+    const updated = [entry, ...history].slice(0, 50);
+    setHistory(updated);
+    localStorage.setItem(storageKey, JSON.stringify(updated));
+  }
+
+  function deleteHistory(id) {
+    const updated = history.filter(h => h.id !== id);
+    setHistory(updated);
+    if (storageKey) localStorage.setItem(storageKey, JSON.stringify(updated));
+  }
+
+  function clearHistory() {
+    setHistory([]);
+    if (storageKey) localStorage.removeItem(storageKey);
+  }
+
   async function handleBuild() {
     if (!prompt.trim() || loading) return;
     setLoading(true);
     setStage('generating');
     setPdfUrl(null);
+    saveToHistory(prompt.trim());
 
     try {
       const res = await fetch('/api/build-resume', {
@@ -107,6 +243,8 @@ export default function Dashboard() {
       if (data.pdfUrl) {
         setPdfUrl(data.pdfUrl);
         setStage('done');
+      } else {
+        setStage('idle');
       }
     } catch (e) {
       setStage('idle');
@@ -128,7 +266,6 @@ export default function Dashboard() {
   return (
     <div className="relative min-h-screen flex flex-col" style={{ fontFamily: FONT }}>
 
-      {/* BG video */}
       <video autoPlay muted loop playsInline className="fixed inset-0 w-full h-full object-cover" style={{ zIndex: 0 }}>
         <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260613_180732_a54afbf6-b30d-470e-861f-669871f09f67.mp4" type="video/mp4" />
       </video>
@@ -139,7 +276,7 @@ export default function Dashboard() {
         {/* Nav */}
         <nav className="flex items-center justify-between px-5 sm:px-8 py-4">
           <span className="text-white text-xl font-bold tracking-wider">GENIE</span>
-          <UserMenu session={session} />
+          <UserMenu session={session} onHistoryClick={() => setHistoryOpen(true)} />
         </nav>
 
         {/* Main */}
@@ -148,10 +285,6 @@ export default function Dashboard() {
 
             {/* Greeting */}
             <div className="text-center">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-4" style={{ background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.2)' }}>
-                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-emerald-400 text-xs font-medium tracking-wide">AI Resume Builder</span>
-              </div>
               <h1 className="text-white text-2xl sm:text-3xl font-black tracking-tight mb-2">
                 Hey {name}, what role are you targeting?
               </h1>
@@ -264,6 +397,17 @@ export default function Dashboard() {
         </main>
 
       </div>
+
+      {/* History drawer */}
+      <HistoryDrawer
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        history={history}
+        onSelect={p => setPrompt(p)}
+        onDelete={deleteHistory}
+        onClear={clearHistory}
+      />
+
     </div>
   );
 }
