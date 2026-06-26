@@ -53,7 +53,7 @@ function UserMenu() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  if (!session) return <Link href="/signup" className="text-white/60 hover:text-white text-sm font-medium transition-colors duration-200">Sign up</Link>;
+  if (!session) return null;
 
   const initial = session.user?.name?.[0]?.toUpperCase() || '?';
   const name = session.user?.name || 'User';
