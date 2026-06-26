@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { signIn } from 'next-auth/react';
 
 const FONT = '"Helvetica Now Var", Helvetica, Arial, sans-serif';
 
@@ -70,7 +71,7 @@ export default function Signup() {
 
               {/* Google button */}
               <button
-                onClick={() => { /* Google OAuth handler */ }}
+                onClick={() => signIn('google')}
                 className="w-full flex items-center justify-center gap-3 bg-white text-gray-800 font-semibold text-base py-4 rounded-2xl hover:bg-gray-50 active:scale-[0.98] transition-all duration-150 shadow-md"
               >
                 <GoogleIcon />
