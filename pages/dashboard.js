@@ -32,27 +32,10 @@ function timeAgo(ts) {
 function HistoryPanel({ open, onClose, history, onSelect, onClear }) {
   return (
     <>
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        className="fixed inset-0 z-40 transition-opacity duration-300"
-        style={{ background: 'rgba(0,0,0,0.5)', opacity: open ? 1 : 0, pointerEvents: open ? 'auto' : 'none' }}
-      />
-      {/* Drawer */}
-      <div
-        className="fixed top-0 right-0 h-full w-full max-w-sm z-50 flex flex-col transition-transform duration-300 ease-out"
-        style={{
-          ...GLASS,
-          background: 'rgba(8,8,8,0.92)',
-          backdropFilter: 'blur(40px)',
-          WebkitBackdropFilter: 'blur(40px)',
-          borderLeft: '1px solid rgba(255,255,255,0.08)',
-          borderTop: 'none', borderBottom: 'none', borderRight: 'none',
-          boxShadow: '-16px 0 48px rgba(0,0,0,0.4)',
-          transform: open ? 'translateX(0)' : 'translateX(100%)',
-        }}
-      >
-        {/* Header */}
+      <div onClick={onClose} className="fixed inset-0 z-40 transition-opacity duration-300"
+        style={{ background: 'rgba(0,0,0,0.5)', opacity: open ? 1 : 0, pointerEvents: open ? 'auto' : 'none' }} />
+      <div className="fixed top-0 right-0 h-full w-full max-w-sm z-50 flex flex-col transition-transform duration-300 ease-out"
+        style={{ background: 'rgba(8,8,8,0.92)', backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)', borderLeft: '1px solid rgba(255,255,255,0.08)', boxShadow: '-16px 0 48px rgba(0,0,0,0.4)', transform: open ? 'translateX(0)' : 'translateX(100%)' }}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
           <div className="flex items-center gap-2.5">
             <History className="w-4 h-4 text-emerald-400" />
@@ -69,8 +52,6 @@ function HistoryPanel({ open, onClose, history, onSelect, onClear }) {
             </button>
           </div>
         </div>
-
-        {/* List */}
         <div className="flex-1 overflow-y-auto px-3 py-3">
           {history.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full gap-3 py-20">
@@ -80,12 +61,9 @@ function HistoryPanel({ open, onClose, history, onSelect, onClear }) {
           ) : (
             <div className="flex flex-col gap-2">
               {history.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => { onSelect(item.prompt); onClose(); }}
+                <button key={item.id} onClick={() => { onSelect(item.prompt); onClose(); }}
                   className="w-full text-left px-4 py-3.5 rounded-2xl transition-all duration-150 hover:bg-white/6 group"
-                  style={{ border: '1px solid rgba(255,255,255,0.06)' }}
-                >
+                  style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
                   <p className="text-white/75 text-sm leading-relaxed line-clamp-2 group-hover:text-white transition-colors duration-150">{item.prompt}</p>
                   <div className="flex items-center gap-2 mt-2">
                     <Clock className="w-3 h-3 text-white/20" />
@@ -120,10 +98,7 @@ function UserMenu({ session, onHistoryOpen }) {
 
   return (
     <div className="relative" ref={ref}>
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-2 rounded-full px-2 py-1.5 hover:bg-white/8 transition-colors duration-200"
-      >
+      <button onClick={() => setOpen(o => !o)} className="flex items-center gap-2 rounded-full px-2 py-1.5 hover:bg-white/8 transition-colors duration-200">
         <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg,#34d399,#06b6d4)' }}>
           {avatar ? <img src={avatar} alt={name} className="w-full h-full object-cover" /> : <span className="text-black text-xs font-bold">{initial}</span>}
         </div>
@@ -138,17 +113,13 @@ function UserMenu({ session, onHistoryOpen }) {
             <p className="text-white/35 text-xs truncate">{email}</p>
           </div>
           <div className="p-2 flex flex-col gap-1">
-            <button
-              onClick={() => { setOpen(false); onHistoryOpen(); }}
-              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/6 transition-all duration-150 text-sm text-left"
-            >
+            <button onClick={() => { setOpen(false); onHistoryOpen(); }}
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/6 transition-all duration-150 text-sm text-left">
               <History className="w-4 h-4" /> History
             </button>
             <div className="h-px bg-white/8" />
-            <button
-              onClick={() => signOut({ callbackUrl: '/' })}
-              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-red-400/70 hover:text-red-400 hover:bg-red-400/8 transition-all duration-150 text-sm text-left"
-            >
+            <button onClick={() => signOut({ callbackUrl: '/' })}
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-red-400/70 hover:text-red-400 hover:bg-red-400/8 transition-all duration-150 text-sm text-left">
               <LogOut className="w-4 h-4" /> Sign out
             </button>
           </div>
@@ -163,10 +134,10 @@ export default function Dashboard() {
   const router = useRouter();
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
-  const [pdfUrl, setPdfUrl] = useState(null);
   const [stage, setStage] = useState('idle');
   const [historyOpen, setHistoryOpen] = useState(false);
   const [history, setHistory] = useState([]);
+  const [resumeHtml, setResumeHtml] = useState(null);
   const textareaRef = useRef(null);
 
   useEffect(() => {
@@ -174,9 +145,11 @@ export default function Dashboard() {
   }, [status]);
 
   useEffect(() => {
-    const stored = localStorage.getItem('genie_history');
-    if (stored) setHistory(JSON.parse(stored));
-  }, []);
+    const key = session?.user?.email ? `genie_history_${session.user.email}` : null;
+    if (key) {
+      try { setHistory(JSON.parse(localStorage.getItem(key) || '[]')); } catch { setHistory([]); }
+    }
+  }, [session]);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -186,22 +159,24 @@ export default function Dashboard() {
   }, [prompt]);
 
   function saveToHistory(p) {
+    const key = `genie_history_${session?.user?.email}`;
     const entry = { id: Date.now(), prompt: p, ts: Date.now() };
     const updated = [entry, ...history].slice(0, 50);
     setHistory(updated);
-    localStorage.setItem('genie_history', JSON.stringify(updated));
+    localStorage.setItem(key, JSON.stringify(updated));
   }
 
   function clearHistory() {
+    const key = `genie_history_${session?.user?.email}`;
     setHistory([]);
-    localStorage.removeItem('genie_history');
+    localStorage.removeItem(key);
   }
 
   async function handleBuild() {
     if (!prompt.trim() || loading) return;
     setLoading(true);
     setStage('generating');
-    setPdfUrl(null);
+    setResumeHtml(null);
     saveToHistory(prompt.trim());
 
     try {
@@ -211,15 +186,33 @@ export default function Dashboard() {
         body: JSON.stringify({ prompt, user: session?.user }),
       });
       const data = await res.json();
-      if (data.pdfUrl) {
-        setPdfUrl(data.pdfUrl);
+      if (data.html) {
+        setResumeHtml(data.html);
         setStage('done');
+      } else {
+        setStage('idle');
       }
     } catch (e) {
       setStage('idle');
     } finally {
       setLoading(false);
     }
+  }
+
+  function handlePreview() {
+    const blob = new Blob([resumeHtml], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+  }
+
+  function handleDownload() {
+    const blob = new Blob([resumeHtml], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'resume.html';
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   if (status === 'loading' || status === 'unauthenticated') {
@@ -259,6 +252,7 @@ export default function Dashboard() {
               </p>
             </div>
 
+            {/* Prompt box */}
             <div className="rounded-3xl p-1" style={GLASS}>
               <div className="rounded-[20px] overflow-hidden" style={{ background: 'rgba(0,0,0,0.2)' }}>
                 <textarea
@@ -286,17 +280,15 @@ export default function Dashboard() {
               </div>
             </div>
 
+            {/* Quick prompts */}
             {stage === 'idle' && (
               <div className="flex flex-col gap-3">
                 <p className="text-white/25 text-xs text-center tracking-wide uppercase">Quick start</p>
                 <div className="flex flex-wrap justify-center gap-2">
                   {QUICK_PROMPTS.map(q => (
-                    <button
-                      key={q}
-                      onClick={() => setPrompt(q)}
+                    <button key={q} onClick={() => setPrompt(q)}
                       className="px-3.5 py-2 rounded-xl text-white/50 hover:text-white text-xs transition-all duration-200 hover:bg-white/8"
-                      style={{ border: '1px solid rgba(255,255,255,0.1)' }}
-                    >
+                      style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
                       {q}
                     </button>
                   ))}
@@ -304,6 +296,7 @@ export default function Dashboard() {
               </div>
             )}
 
+            {/* Generating */}
             {stage === 'generating' && (
               <div className="rounded-2xl px-6 py-5 flex items-center gap-4" style={GLASS}>
                 <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg,rgba(52,211,153,0.2),rgba(6,182,212,0.2))' }}>
@@ -316,7 +309,8 @@ export default function Dashboard() {
               </div>
             )}
 
-            {stage === 'done' && pdfUrl && (
+            {/* Done */}
+            {stage === 'done' && resumeHtml && (
               <div className="rounded-2xl p-6 flex flex-col gap-4" style={GLASS}>
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(52,211,153,0.15)' }}>
@@ -324,25 +318,23 @@ export default function Dashboard() {
                   </div>
                   <div>
                     <p className="text-white text-sm font-semibold">Your resume is ready</p>
-                    <p className="text-white/35 text-xs">ATS optimized · Professional format · PDF</p>
+                    <p className="text-white/35 text-xs">ATS optimized · Professional format</p>
                   </div>
                 </div>
                 <div className="flex gap-3">
-                  <a href={pdfUrl} target="_blank" rel="noopener noreferrer"
+                  <button onClick={handlePreview}
                     className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-white text-sm font-medium transition-all duration-200 hover:bg-white/12 active:scale-95"
                     style={{ border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.06)' }}>
                     <Eye className="w-4 h-4" /> Preview
-                  </a>
-                  <a href={pdfUrl} download="resume.pdf"
+                  </button>
+                  <button onClick={handleDownload}
                     className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-black text-sm font-semibold transition-all duration-200 hover:opacity-90 active:scale-95"
                     style={{ background: 'linear-gradient(135deg,#34d399,#06b6d4)' }}>
-                    <Download className="w-4 h-4" /> Download PDF
-                  </a>
+                    <Download className="w-4 h-4" /> Download
+                  </button>
                 </div>
-                <button
-                  onClick={() => { setStage('idle'); setPrompt(''); setPdfUrl(null); }}
-                  className="text-white/30 hover:text-white/60 text-xs text-center transition-colors duration-200"
-                >
+                <button onClick={() => { setStage('idle'); setPrompt(''); setResumeHtml(null); }}
+                  className="text-white/30 hover:text-white/60 text-xs text-center transition-colors duration-200">
                   Build another resume
                 </button>
               </div>
@@ -350,7 +342,6 @@ export default function Dashboard() {
 
           </div>
         </main>
-
       </div>
 
       <HistoryPanel
