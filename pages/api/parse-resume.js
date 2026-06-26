@@ -11,41 +11,47 @@ export default async function handler(req, res) {
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-    const prompt = `Extract resume information from the text below. Return ONLY valid JSON, no markdown, no explanation.
+    const prompt = `You are a resume parser. Read the resume text carefully and extract every field you can find. Return ONLY valid JSON, no markdown, no explanation.
 
-TEXT:
+RESUME TEXT:
 """
 ${text}
 """
 
-Return this exact JSON structure. Use null for any field you cannot find:
+Extract and return this exact JSON:
 {
-  "name": "full name or null",
-  "email": "email or null",
-  "phone": "phone number or null",
-  "location": "city/country or null",
-  "role": "target job role or current job title or null",
-  "education": "degree, institution, year — all education entries as a single string or null",
-  "experience": "all work experience — company, role, duration, achievements as a single descriptive string or null",
-  "skills": "comma-separated skills or null",
+  "name": "The person's full name. It is usually the FIRST prominent text at the top of the resume, often in large/bold letters. Look for it carefully.",
+  "email": "Email address — look for @ symbol",
+  "phone": "Phone/mobile number — any sequence of digits",
+  "location": "Address, city, state, country, or PIN code area",
+  "role": "Their target role or current designation. If student, use their course like 'BCA Student' or 'Software Developer'",
+  "education": "All education: degree, institution name, year. Combine all into one string.",
+  "experience": "All work experience. If no work experience or they are a student/fresher, write exactly: fresher",
+  "skills": "All skills, interests, technologies mentioned — comma separated",
   "photo": null,
-  "extra": "projects, certifications, LinkedIn, GitHub, or any other notable info or null"
+  "extra": "Any extra info: projects, certifications, LinkedIn, GitHub, hobbies, achievements"
 }
 
-Rules:
-- Extract EXACTLY what is in the text, do not invent anything
-- For experience: if the person mentions being a fresher or student with no work experience, set it to "fresher"
-- For role: infer from the most recent job title or stated objective/summary
-- Return null (not empty string) for anything truly missing`;
+CRITICAL RULES:
+- The NAME is almost always the very first line or heading of the resume — extract it
+- Email always contains @ — extract it exactly as written
+- Phone is a sequence of 7+ digits — extract it exactly
+- NEVER return the string "null" — use actual null for missing fields
+- Do not skip fields that are clearly present in the text
+- If person is a student with no job experience, set experience to "fresher"`;
 
     const result = await model.generateContent(prompt);
     const raw = result.response.text().replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const parsed = JSON.parse(raw);
 
-    // Clean up nulls — convert to empty string so frontend can check easily
+    // Convert null/"null"/undefined to empty string, keep everything else
     const cleaned = {};
     for (const [k, v] of Object.entries(parsed)) {
-      cleaned[k] = v && String(v).trim() !== 'null' ? String(v).trim() : '';
+      if (v === null || v === undefined || String(v).trim() === 'null' || String(v).trim() === '') {
+        cleaned[k] = '';
+      } else {
+        cleaned[k] = String(v).trim();
+      }
     }
 
     return res.status(200).json({ parsed: cleaned });
