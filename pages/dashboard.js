@@ -396,10 +396,6 @@ export default function Dashboard() {
 
               {/* Greeting */}
               <div className="text-center">
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5"
-                  style={{ background: 'linear-gradient(135deg,#34d399,#06b6d4)' }}>
-                  <Sparkles className="w-7 h-7 text-black" />
-                </div>
                 <h1 className="text-white text-3xl sm:text-4xl font-black tracking-tight mb-3">
                   Hey {firstName} 👋
                 </h1>
