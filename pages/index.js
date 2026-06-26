@@ -1,5 +1,6 @@
 import { FileText, Zap, Target, Star, Twitter, Linkedin, Github, Youtube, LogOut, FileText as FileIcon, Clock, User } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { useState, useRef, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 
@@ -134,6 +135,15 @@ function GradBtn({ children, href, onClick, className = '' }) {
 }
 
 export default function Home() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === 'authenticated') router.replace('/dashboard');
+  }, [status]);
+
+  if (status === 'loading' || status === 'authenticated') return null;
+
   return (
     <div className="relative min-h-screen flex flex-col" style={{ fontFamily: FONT }}>
       {/* BG Video — fixed so it never stretches on scroll */}
