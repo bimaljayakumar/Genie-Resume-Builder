@@ -5,14 +5,6 @@ import { Send, Sparkles, FileText, Download, Eye, LogOut, ChevronDown, Loader2, 
 
 const FONT = '"Helvetica Now Var", Helvetica, Arial, sans-serif';
 
-const QUICK_PROMPTS = [
-  'Software Engineer at a startup',
-  'Product Manager at a tech company',
-  'UX Designer with 3 years experience',
-  'Data Scientist applying to Google',
-  'Fresh graduate in Computer Science',
-];
-
 const GLASS = {
   background: 'rgba(255,255,255,0.06)',
   backdropFilter: 'blur(32px)',
@@ -21,12 +13,63 @@ const GLASS = {
   boxShadow: '0 8px 48px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)',
 };
 
+// All required fields and how to ask for them if missing
+const REQUIRED_FIELDS = [
+  { key: 'name',       label: 'full name',      ask: "What's your **full name**?" },
+  { key: 'email',      label: 'email',           ask: "What's your **email address**?" },
+  { key: 'phone',      label: 'phone',           ask: "What's your **phone number**?" },
+  { key: 'location',   label: 'location',        ask: "Where are you located? (City, Country)" },
+  { key: 'role',       label: 'target role',     ask: "What **job role** are you targeting?" },
+  { key: 'education',  label: 'education',       ask: "Tell me about your **education** — degree, institution, and year." },
+  { key: 'experience', label: 'work experience', ask: "Describe your **work experience** — company, role, duration, and key achievements. If you're a fresher, just say **fresher**." },
+  { key: 'skills',     label: 'skills',          ask: "List your **skills** (e.g. React, Python, SQL, Figma...)" },
+  { key: 'photo',      label: 'photo preference',ask: "Would you like a **photo** on your resume? (yes / no)" },
+];
+
 function timeAgo(ts) {
   const diff = (Date.now() - ts) / 1000;
   if (diff < 60) return 'just now';
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function renderMd(text) {
+  return text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+}
+
+function Bubble({ role, text, isLoading }) {
+  const isUser = role === 'user';
+  return (
+    <div className={`flex w-full mb-4 ${isUser ? 'justify-end' : 'justify-start'}`}>
+      {!isUser && (
+        <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mr-3 mt-0.5"
+          style={{ background: 'linear-gradient(135deg,#34d399,#06b6d4)' }}>
+          <Sparkles className="w-4 h-4 text-black" />
+        </div>
+      )}
+      <div className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${isUser ? 'rounded-tr-sm' : 'rounded-tl-sm'}`}
+        style={isUser
+          ? { background: 'linear-gradient(135deg,#34d399,#06b6d4)', color: '#000', fontWeight: 500 }
+          : { background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.9)' }
+        }>
+        {isLoading
+          ? <span className="flex gap-1 items-center h-4">
+              <span className="w-1.5 h-1.5 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: '300ms' }} />
+            </span>
+          : <span dangerouslySetInnerHTML={{ __html: renderMd(text) }} />
+        }
+      </div>
+      {isUser && (
+        <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ml-3 mt-0.5"
+          style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.15)' }}>
+          <span className="text-white text-xs font-bold">Y</span>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function HistoryPanel({ open, onClose, history, onSelect, onClear }) {
@@ -39,15 +82,15 @@ function HistoryPanel({ open, onClose, history, onSelect, onClear }) {
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
           <div className="flex items-center gap-2.5">
             <History className="w-4 h-4 text-emerald-400" />
-            <span className="text-white font-semibold text-sm">Search History</span>
+            <span className="text-white font-semibold text-sm">Resume History</span>
           </div>
           <div className="flex items-center gap-2">
             {history.length > 0 && (
-              <button onClick={onClear} className="text-white/30 hover:text-red-400 transition-colors duration-150 p-1.5 rounded-lg hover:bg-red-400/8">
+              <button onClick={onClear} className="text-white/30 hover:text-red-400 transition-colors p-1.5 rounded-lg">
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             )}
-            <button onClick={onClose} className="text-white/30 hover:text-white transition-colors duration-150 p-1.5 rounded-lg hover:bg-white/8">
+            <button onClick={onClose} className="text-white/30 hover:text-white transition-colors p-1.5 rounded-lg">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -61,10 +104,10 @@ function HistoryPanel({ open, onClose, history, onSelect, onClear }) {
           ) : (
             <div className="flex flex-col gap-2">
               {history.map((item) => (
-                <button key={item.id} onClick={() => { onSelect(item.prompt); onClose(); }}
-                  className="w-full text-left px-4 py-3.5 rounded-2xl transition-all duration-150 hover:bg-white/6 group"
+                <button key={item.id} onClick={() => { onSelect(item); onClose(); }}
+                  className="w-full text-left px-4 py-3.5 rounded-2xl hover:bg-white/6 group"
                   style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <p className="text-white/75 text-sm leading-relaxed line-clamp-2 group-hover:text-white transition-colors duration-150">{item.prompt}</p>
+                  <p className="text-white/75 text-sm line-clamp-2 group-hover:text-white">{item.role} — {item.name}</p>
                   <div className="flex items-center gap-2 mt-2">
                     <Clock className="w-3 h-3 text-white/20" />
                     <span className="text-white/25 text-xs">{timeAgo(item.ts)}</span>
@@ -94,18 +137,16 @@ function UserMenu({ session, onHistoryOpen }) {
   const name = session?.user?.name || 'User';
   const email = session?.user?.email || '';
   const avatar = session?.user?.image;
-  const initial = name[0]?.toUpperCase();
 
   return (
     <div className="relative" ref={ref}>
-      <button onClick={() => setOpen(o => !o)} className="flex items-center gap-2 rounded-full px-2 py-1.5 hover:bg-white/8 transition-colors duration-200">
+      <button onClick={() => setOpen(o => !o)} className="flex items-center gap-2 rounded-full px-2 py-1.5 hover:bg-white/8 transition-colors">
         <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg,#34d399,#06b6d4)' }}>
-          {avatar ? <img src={avatar} alt={name} className="w-full h-full object-cover" /> : <span className="text-black text-xs font-bold">{initial}</span>}
+          {avatar ? <img src={avatar} alt={name} className="w-full h-full object-cover" /> : <span className="text-black text-xs font-bold">{name[0]?.toUpperCase()}</span>}
         </div>
         <span className="text-white/70 text-sm hidden sm:block">{name.split(' ')[0]}</span>
         <ChevronDown className="w-3.5 h-3.5 text-white/40 hidden sm:block" />
       </button>
-
       {open && (
         <div className="absolute right-0 top-12 w-60 z-50 rounded-2xl overflow-hidden" style={{ ...GLASS, background: 'rgba(8,8,8,0.9)' }}>
           <div className="px-4 py-3.5 border-b border-white/8">
@@ -114,12 +155,12 @@ function UserMenu({ session, onHistoryOpen }) {
           </div>
           <div className="p-2 flex flex-col gap-1">
             <button onClick={() => { setOpen(false); onHistoryOpen(); }}
-              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/6 transition-all duration-150 text-sm text-left">
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/6 text-sm text-left">
               <History className="w-4 h-4" /> History
             </button>
             <div className="h-px bg-white/8" />
             <button onClick={() => signOut({ callbackUrl: '/' })}
-              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-red-400/70 hover:text-red-400 hover:bg-red-400/8 transition-all duration-150 text-sm text-left">
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-red-400/70 hover:text-red-400 hover:bg-red-400/8 text-sm text-left">
               <LogOut className="w-4 h-4" /> Sign out
             </button>
           </div>
@@ -129,216 +170,298 @@ function UserMenu({ session, onHistoryOpen }) {
   );
 }
 
+// ─── Main ───────────────────────────────────────────────────────────────────
+
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [prompt, setPrompt] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [stage, setStage] = useState('idle');
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [history, setHistory] = useState([]);
-  const [resumeHtml, setResumeHtml] = useState(null);
-  const textareaRef = useRef(null);
 
-  useEffect(() => {
-    if (status === 'unauthenticated') router.replace('/signup');
-  }, [status]);
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState('');
+  // phase: 'paste' | 'parsing' | 'followup' | 'generating' | 'done'
+  const [phase, setPhase] = useState('paste');
+  const [userData, setUserData] = useState({});
+  const [missingQueue, setMissingQueue] = useState([]); // fields still needed
+  const [resumeHtml, setResumeHtml] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [aiTyping, setAiTyping] = useState(false);
+
+  const bottomRef = useRef(null);
+  const textareaRef = useRef(null);
+  const initiated = useRef(false);
+
+  useEffect(() => { if (status === 'unauthenticated') router.replace('/signup'); }, [status]);
 
   useEffect(() => {
     const key = session?.user?.email ? `genie_history_${session.user.email}` : null;
-    if (key) {
-      try { setHistory(JSON.parse(localStorage.getItem(key) || '[]')); } catch { setHistory([]); }
-    }
+    if (key) { try { setHistory(JSON.parse(localStorage.getItem(key) || '[]')); } catch { setHistory([]); } }
   }, [session]);
+
+  useEffect(() => {
+    if (!initiated.current) {
+      initiated.current = true;
+      setMessages([{
+        role: 'ai',
+        text: "Hey! 👋 I'm **Genie** — your AI resume builder.\n\nPaste your existing resume below (or just describe yourself), and I'll extract all your details and build a professional ATS-ready resume for you. If anything is missing, I'll ask you one by one."
+      }]);
+    }
+  }, []);
+
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, aiTyping]);
 
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 180) + 'px';
+      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 200) + 'px';
     }
-  }, [prompt]);
+  }, [input]);
 
-  function saveToHistory(p) {
-    const key = `genie_history_${session?.user?.email}`;
-    const entry = { id: Date.now(), prompt: p, ts: Date.now() };
-    const updated = [entry, ...history].slice(0, 50);
-    setHistory(updated);
-    localStorage.setItem(key, JSON.stringify(updated));
+  function addMsg(role, text) {
+    setMessages(prev => [...prev, { role, text }]);
   }
 
-  function clearHistory() {
-    const key = `genie_history_${session?.user?.email}`;
-    setHistory([]);
-    localStorage.removeItem(key);
+  // ── Step 1: User pastes resume text — parse it with AI ──────────────────
+  async function handlePaste(text) {
+    addMsg('user', text);
+    setPhase('parsing');
+    setAiTyping(true);
+
+    try {
+      const res = await fetch('/api/parse-resume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+      const { parsed } = await res.json();
+      setAiTyping(false);
+
+      const data = parsed || {};
+      setUserData(data);
+
+      // Find which required fields are still missing
+      const missing = REQUIRED_FIELDS.filter(f => !data[f.key] || String(data[f.key]).trim() === '');
+
+      if (missing.length === 0) {
+        // Everything extracted — go straight to generation
+        setPhase('generating');
+        addMsg('ai', `Got everything! 🎉 Here's what I found:\n\n**Name:** ${data.name}\n**Role:** ${data.role}\n**Email:** ${data.email}\n\nGenerating your resume now...`);
+        await generateResume(data);
+      } else {
+        // Tell user what was found, then ask for first missing field
+        const found = REQUIRED_FIELDS.filter(f => data[f.key] && String(data[f.key]).trim() !== '').map(f => f.label);
+        const foundStr = found.length > 0 ? `I picked up your **${found.join(', ')}**. ` : '';
+        setMissingQueue(missing);
+        setPhase('followup');
+        addMsg('ai', `${foundStr}Just need a few more things.\n\n${missing[0].ask}`);
+      }
+    } catch {
+      setAiTyping(false);
+      setPhase('paste');
+      addMsg('ai', "Hmm, something went wrong reading that. Could you try again?");
+    }
   }
 
-  async function handleBuild() {
-    if (!prompt.trim() || loading) return;
-    setLoading(true);
-    setStage('generating');
-    setResumeHtml(null);
-    saveToHistory(prompt.trim());
+  // ── Step 2: Follow-up answers for missing fields ─────────────────────────
+  function validateField(key, val) {
+    if (!val.trim()) return "Please provide an answer.";
+    if (key === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim())) return "That doesn't look like a valid email — try again.";
+    if (key === 'phone' && !/[\d\s\+\-\(\)]{7,}/.test(val.trim())) return "Enter a valid phone number.";
+    if (key === 'photo' && !['yes','no','y','n'].includes(val.trim().toLowerCase())) return "Just say **yes** or **no** 😊";
+    return null;
+  }
 
+  async function handleFollowup(val) {
+    addMsg('user', val);
+    const current = missingQueue[0];
+
+    const err = validateField(current.key, val);
+    if (err) {
+      setTimeout(() => addMsg('ai', err), 400);
+      return;
+    }
+
+    const updated = { ...userData, [current.key]: val.trim() };
+    setUserData(updated);
+    const remaining = missingQueue.slice(1);
+    setMissingQueue(remaining);
+
+    if (remaining.length > 0) {
+      setAiTyping(true);
+      setTimeout(() => {
+        setAiTyping(false);
+        addMsg('ai', remaining[0].ask);
+      }, 500);
+    } else {
+      // All done — generate
+      setPhase('generating');
+      setAiTyping(true);
+      setTimeout(() => {
+        setAiTyping(false);
+        addMsg('ai', "🎉 Got everything I need! Building your resume now...");
+      }, 500);
+      await generateResume(updated);
+    }
+  }
+
+  // ── Step 3: Generate resume ───────────────────────────────────────────────
+  async function generateResume(data) {
     try {
       const res = await fetch('/api/build-resume', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, user: session?.user }),
+        body: JSON.stringify({ userData: data }),
       });
-      const data = await res.json();
-      if (data.html) {
-        setResumeHtml(data.html);
-        setStage('done');
+      const result = await res.json();
+      if (result.html) {
+        setResumeHtml(result.html);
+        setPhase('done');
+        const key = `genie_history_${session?.user?.email}`;
+        const entry = { id: Date.now(), ts: Date.now(), name: data.name, role: data.role, html: result.html };
+        const h = [entry, ...history].slice(0, 20);
+        setHistory(h);
+        localStorage.setItem(key, JSON.stringify(h));
+        setTimeout(() => addMsg('ai', `✅ Your resume is ready, **${data.name}**! Tailored for **${data.role}**, ATS-optimized. Preview or download below.`), 600);
       } else {
-        setStage('idle');
+        setPhase('paste');
+        addMsg('ai', "Something went wrong generating the resume. Please try again.");
       }
-    } catch (e) {
-      setStage('idle');
-    } finally {
-      setLoading(false);
+    } catch {
+      setPhase('paste');
+      addMsg('ai', "Network error. Please check your connection and try again.");
     }
   }
 
-  function handlePreview() {
-    const blob = new Blob([resumeHtml], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
+  async function handleSend() {
+    const val = input.trim();
+    if (!val || phase === 'parsing' || phase === 'generating') return;
+    setInput('');
+
+    if (phase === 'paste') {
+      await handlePaste(val);
+    } else if (phase === 'followup') {
+      await handleFollowup(val);
+    }
   }
 
-  function handleDownload() {
-    const blob = new Blob([resumeHtml], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'resume.html';
-    a.click();
-    URL.revokeObjectURL(url);
+  function handleRestart() {
+    setMessages([{
+      role: 'ai',
+      text: "Hey! 👋 I'm **Genie** — your AI resume builder.\n\nPaste your existing resume below (or just describe yourself), and I'll extract all your details and build a professional ATS-ready resume for you. If anything is missing, I'll ask you one by one."
+    }]);
+    setPhase('paste');
+    setUserData({});
+    setMissingQueue([]);
+    setResumeHtml(null);
+    setInput('');
   }
 
   if (status === 'loading' || status === 'unauthenticated') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-black">
-        <Loader2 className="w-6 h-6 text-white/30 animate-spin" />
-      </div>
-    );
+    return <div className="min-h-screen flex items-center justify-center bg-black"><Loader2 className="w-6 h-6 text-white/30 animate-spin" /></div>;
   }
 
-  const name = session?.user?.name?.split(' ')[0] || 'there';
+  const inputDisabled = phase === 'parsing' || phase === 'generating';
+  const placeholder = phase === 'paste'
+    ? "Paste your resume here, or describe your background..."
+    : phase === 'followup'
+    ? "Type your answer..."
+    : "Please wait...";
 
   return (
     <div className="relative min-h-screen flex flex-col" style={{ fontFamily: FONT }}>
-
       <video autoPlay muted loop playsInline className="fixed inset-0 w-full h-full object-cover" style={{ zIndex: 0 }}>
         <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260613_180732_a54afbf6-b30d-470e-861f-669871f09f67.mp4" type="video/mp4" />
       </video>
-      <div className="fixed inset-0 bg-black/60" style={{ zIndex: 1 }} />
+      <div className="fixed inset-0 bg-black/65" style={{ zIndex: 1 }} />
 
       <div className="relative flex flex-col min-h-screen" style={{ zIndex: 2 }}>
 
-        <nav className="flex items-center justify-between px-5 sm:px-8 py-4">
+        <nav className="flex items-center justify-between px-5 sm:px-8 py-4 flex-shrink-0">
           <span className="text-white text-xl font-bold tracking-wider">GENIE</span>
           <UserMenu session={session} onHistoryOpen={() => setHistoryOpen(true)} />
         </nav>
 
-        <main className="flex-1 flex flex-col items-center justify-center px-4 py-8 sm:py-12">
-          <div className="w-full max-w-2xl flex flex-col gap-6">
+        <main className="flex-1 flex flex-col items-center overflow-hidden">
+          <div className="w-full max-w-2xl flex flex-col h-full">
 
-            <div className="text-center">
-              <h1 className="text-white text-2xl sm:text-3xl font-black tracking-tight mb-2">
-                Hey {name}, what role are you targeting?
-              </h1>
-              <p className="text-white/40 text-sm">
-                Describe yourself and the job — Genie builds your perfect resume instantly
-              </p>
-            </div>
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto px-4 py-4" style={{ minHeight: 0 }}>
+              {messages.map((m, i) => <Bubble key={i} role={m.role} text={m.text} />)}
+              {aiTyping && <Bubble role="ai" text="" isLoading />}
 
-            {/* Prompt box */}
-            <div className="rounded-3xl p-1" style={GLASS}>
-              <div className="rounded-[20px] overflow-hidden" style={{ background: 'rgba(0,0,0,0.2)' }}>
-                <textarea
-                  ref={textareaRef}
-                  value={prompt}
-                  onChange={e => setPrompt(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleBuild(); } }}
-                  placeholder="e.g. I'm a software engineer with 4 years of React and Node.js experience, applying for a senior frontend role at a fintech startup..."
-                  rows={3}
-                  className="w-full bg-transparent text-white text-sm sm:text-base placeholder-white/25 resize-none outline-none px-5 pt-5 pb-3 leading-relaxed"
-                  style={{ minHeight: '100px' }}
-                />
-                <div className="flex items-center justify-between px-4 pb-4 pt-1">
-                  <span className="text-white/20 text-xs">{prompt.length > 0 ? `${prompt.length} chars` : 'Shift+Enter for new line'}</span>
-                  <button
-                    onClick={handleBuild}
-                    disabled={!prompt.trim() || loading}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed active:scale-95"
-                    style={{ background: 'linear-gradient(135deg,#34d399,#06b6d4)', color: '#000' }}
-                  >
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    {loading ? 'Building...' : 'Build Resume'}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick prompts */}
-            {stage === 'idle' && (
-              <div className="flex flex-col gap-3">
-                <p className="text-white/25 text-xs text-center tracking-wide uppercase">Quick start</p>
-                <div className="flex flex-wrap justify-center gap-2">
-                  {QUICK_PROMPTS.map(q => (
-                    <button key={q} onClick={() => setPrompt(q)}
-                      className="px-3.5 py-2 rounded-xl text-white/50 hover:text-white text-xs transition-all duration-200 hover:bg-white/8"
-                      style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
-                      {q}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Generating */}
-            {stage === 'generating' && (
-              <div className="rounded-2xl px-6 py-5 flex items-center gap-4" style={GLASS}>
-                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg,rgba(52,211,153,0.2),rgba(6,182,212,0.2))' }}>
-                  <Sparkles className="w-4 h-4 text-emerald-400 animate-pulse" />
-                </div>
-                <div>
-                  <p className="text-white text-sm font-medium">Genie is crafting your resume...</p>
-                  <p className="text-white/35 text-xs mt-0.5">Analyzing your profile, optimizing for ATS, formatting sections</p>
-                </div>
-              </div>
-            )}
-
-            {/* Done */}
-            {stage === 'done' && resumeHtml && (
-              <div className="rounded-2xl p-6 flex flex-col gap-4" style={GLASS}>
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(52,211,153,0.15)' }}>
-                    <FileText className="w-4 h-4 text-emerald-400" />
-                  </div>
-                  <div>
-                    <p className="text-white text-sm font-semibold">Your resume is ready</p>
-                    <p className="text-white/35 text-xs">ATS optimized · Professional format</p>
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <button onClick={handlePreview}
-                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-white text-sm font-medium transition-all duration-200 hover:bg-white/12 active:scale-95"
-                    style={{ border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.06)' }}>
-                    <Eye className="w-4 h-4" /> Preview
-                  </button>
-                  <button onClick={handleDownload}
-                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-black text-sm font-semibold transition-all duration-200 hover:opacity-90 active:scale-95"
+              {/* Resume card */}
+              {phase === 'done' && resumeHtml && (
+                <div className="flex justify-start mb-4">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mr-3 mt-0.5"
                     style={{ background: 'linear-gradient(135deg,#34d399,#06b6d4)' }}>
-                    <Download className="w-4 h-4" /> Download
+                    <Sparkles className="w-4 h-4 text-black" />
+                  </div>
+                  <div className="rounded-2xl rounded-tl-sm p-4 flex flex-col gap-3"
+                    style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', minWidth: 260 }}>
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-emerald-400" />
+                      <span className="text-white text-sm font-semibold">Resume Ready</span>
+                      <span className="text-white/30 text-xs">· ATS Optimized</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => window.open(URL.createObjectURL(new Blob([resumeHtml], { type: 'text/html' })), '_blank')}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-white text-xs font-medium hover:bg-white/12"
+                        style={{ border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.06)' }}>
+                        <Eye className="w-3.5 h-3.5" /> Preview
+                      </button>
+                      <button onClick={() => {
+                        const a = document.createElement('a');
+                        a.href = URL.createObjectURL(new Blob([resumeHtml], { type: 'text/html' }));
+                        a.download = `${userData.name?.replace(/\s+/g, '_') || 'resume'}.html`;
+                        a.click();
+                      }}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-black text-xs font-semibold hover:opacity-90"
+                        style={{ background: 'linear-gradient(135deg,#34d399,#06b6d4)' }}>
+                        <Download className="w-3.5 h-3.5" /> Download
+                      </button>
+                    </div>
+                    <button onClick={handleRestart} className="text-white/30 hover:text-white/60 text-xs text-center transition-colors">
+                      Build a new resume
+                    </button>
+                  </div>
+                </div>
+              )}
+              <div ref={bottomRef} />
+            </div>
+
+            {/* Input */}
+            <div className="px-4 pb-6 flex-shrink-0">
+              {phase === 'done' ? (
+                <div className="text-center">
+                  <button onClick={handleRestart} className="text-white/40 hover:text-white text-sm transition-colors">
+                    + Start a new resume
                   </button>
                 </div>
-                <button onClick={() => { setStage('idle'); setPrompt(''); setResumeHtml(null); }}
-                  className="text-white/30 hover:text-white/60 text-xs text-center transition-colors duration-200">
-                  Build another resume
-                </button>
-              </div>
-            )}
+              ) : (
+                <div className="rounded-2xl p-1" style={GLASS}>
+                  <div className="rounded-[14px] flex items-end gap-2 px-4 py-2" style={{ background: 'rgba(0,0,0,0.2)' }}>
+                    <textarea
+                      ref={textareaRef}
+                      value={input}
+                      onChange={e => setInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                      placeholder={placeholder}
+                      disabled={inputDisabled}
+                      rows={1}
+                      className="flex-1 bg-transparent text-white text-sm placeholder-white/25 resize-none outline-none py-2 leading-relaxed disabled:opacity-40"
+                      style={{ maxHeight: 200 }}
+                    />
+                    <button
+                      onClick={handleSend}
+                      disabled={!input.trim() || inputDisabled}
+                      className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mb-1 transition-all disabled:opacity-30 active:scale-90"
+                      style={{ background: 'linear-gradient(135deg,#34d399,#06b6d4)' }}>
+                      {inputDisabled ? <Loader2 className="w-3.5 h-3.5 text-black animate-spin" /> : <Send className="w-3.5 h-3.5 text-black" />}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
           </div>
         </main>
@@ -348,8 +471,8 @@ export default function Dashboard() {
         open={historyOpen}
         onClose={() => setHistoryOpen(false)}
         history={history}
-        onSelect={p => setPrompt(p)}
-        onClear={clearHistory}
+        onSelect={item => { setResumeHtml(item.html); setPhase('done'); setUserData({ name: item.name, role: item.role }); setMessages([{ role: 'ai', text: `Here's the resume for **${item.role}** — loaded from history.` }]); }}
+        onClear={() => { const key = `genie_history_${session?.user?.email}`; setHistory([]); localStorage.removeItem(key); }}
       />
     </div>
   );
