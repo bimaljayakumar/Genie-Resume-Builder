@@ -325,13 +325,13 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="relative min-h-screen flex flex-col" style={{ fontFamily: FONT }}>
+    <div className="relative h-screen flex flex-col overflow-hidden" style={{ fontFamily: FONT }}>
       <video autoPlay muted loop playsInline className="fixed inset-0 w-full h-full object-cover" style={{ zIndex: 0 }}>
         <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260613_180732_a54afbf6-b30d-470e-861f-669871f09f67.mp4" type="video/mp4" />
       </video>
       <div className="fixed inset-0 bg-black/65" style={{ zIndex: 1 }} />
 
-      <div className="relative flex flex-col min-h-screen" style={{ zIndex: 2 }}>
+      <div className="relative flex flex-col h-full" style={{ zIndex: 2 }}>
 
         <nav className="flex items-center justify-between px-5 sm:px-8 py-4 flex-shrink-0">
           <span className="text-white text-xl font-bold tracking-wider">GENIE</span>
@@ -340,7 +340,7 @@ export default function Dashboard() {
 
         {/* ── INITIAL centered view ── */}
         {!hasChat && (
-          <div className="flex-1 flex flex-col items-center justify-center px-4 pb-10">
+          <div className="flex-1 flex flex-col items-center justify-center px-4 overflow-y-auto pb-10">
             <div className="w-full max-w-2xl flex flex-col items-center gap-8">
               <div className="text-center">
                 <h1 className="text-white text-3xl sm:text-4xl font-black tracking-tight mb-3">
@@ -371,8 +371,8 @@ export default function Dashboard() {
 
         {/* ── CHAT view ── */}
         {hasChat && (
-          <main className="flex-1 flex flex-col items-center overflow-hidden">
-            <div className="w-full max-w-2xl flex flex-col h-full">
+          <main className="flex-1 flex flex-col items-center overflow-hidden min-h-0">
+            <div className="w-full max-w-2xl flex flex-col h-full min-h-0">
 
               <div className="flex-1 overflow-y-auto px-3 sm:px-5 py-4 sm:py-6" style={{ minHeight: 0 }}>
                 {messages.map((m, i) => <Bubble key={i} role={m.role} text={m.text} userInitial={userInitial} />)}
