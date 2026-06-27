@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   if (!text?.trim()) return res.status(400).json({ error: 'No text provided' });
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     const prompt = `You are a resume parser. Read the resume text carefully and extract every field you can find. Return ONLY valid JSON, no markdown, no explanation.
 
