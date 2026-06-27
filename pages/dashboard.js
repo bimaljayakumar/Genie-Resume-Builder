@@ -179,6 +179,47 @@ function UserMenu({ session, onHistoryOpen }) {
   );
 }
 
+function DownloadButton({ resumeHtml, userName }) {
+  const [downloading, setDownloading] = useState(false);
+
+  async function handleDownload() {
+    setDownloading(true);
+    try {
+      const res = await fetch('/api/generate-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ html: resumeHtml, name: userName }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Server error');
+      }
+      const blob = await res.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${(userName || 'resume').replace(/\s+/g, '_')}_Resume.pdf`;
+      a.click();
+    } catch (err) {
+      console.error('Download error:', err);
+      alert('PDF failed: ' + err.message);
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  return (
+    <button
+      onClick={handleDownload}
+      disabled={downloading}
+      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-white/90 text-xs font-semibold transition-all hover:bg-white/15 disabled:opacity-50"
+      style={{ border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.1)' }}>
+      {downloading
+        ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Generating...</>
+        : <><Download className="w-3.5 h-3.5" /> Download PDF</>}
+    </button>
+  );
+}
+
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
@@ -398,27 +439,7 @@ export default function Dashboard() {
                           style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)' }}>
                           <Eye className="w-3.5 h-3.5" /> Preview
                         </button>
-                        <button onClick={async () => {
-                          try {
-                            const res = await fetch('/api/generate-pdf', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ html: resumeHtml, name: userData?.name }),
-                            });
-                            if (!res.ok) throw new Error('Failed');
-                            const blob = await res.blob();
-                            const a = document.createElement('a');
-                            a.href = URL.createObjectURL(blob);
-                            a.download = `${userData?.name?.replace(/\s+/g, '_') || 'resume'}_Resume.pdf`;
-                            a.click();
-                          } catch {
-                            alert('PDF generation failed. Please try again.');
-                          }
-                        }}
-                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-white/90 text-xs font-semibold transition-all hover:bg-white/15"
-                          style={{ border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.1)' }}>
-                          <Download className="w-3.5 h-3.5" /> Download PDF
-                        </button>
+                        <DownloadButton resumeHtml={resumeHtml} userName={userData?.name} />
                       </div>
                       <button onClick={handleRestart} className="text-white/25 hover:text-white/50 text-xs text-center transition-colors">
                         Build a new resume
