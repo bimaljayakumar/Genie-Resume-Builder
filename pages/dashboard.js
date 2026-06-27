@@ -398,15 +398,26 @@ export default function Dashboard() {
                           style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)' }}>
                           <Eye className="w-3.5 h-3.5" /> Preview
                         </button>
-                        <button onClick={() => {
-                          const a = document.createElement('a');
-                          a.href = URL.createObjectURL(new Blob([resumeHtml], { type: 'text/html' }));
-                          a.download = `${userData?.name?.replace(/\s+/g, '_') || 'resume'}.html`;
-                          a.click();
+                        <button onClick={async () => {
+                          try {
+                            const res = await fetch('/api/generate-pdf', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ html: resumeHtml, name: userData?.name }),
+                            });
+                            if (!res.ok) throw new Error('Failed');
+                            const blob = await res.blob();
+                            const a = document.createElement('a');
+                            a.href = URL.createObjectURL(blob);
+                            a.download = `${userData?.name?.replace(/\s+/g, '_') || 'resume'}_Resume.pdf`;
+                            a.click();
+                          } catch {
+                            alert('PDF generation failed. Please try again.');
+                          }
                         }}
                           className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-white/90 text-xs font-semibold transition-all hover:bg-white/15"
                           style={{ border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.1)' }}>
-                          <Download className="w-3.5 h-3.5" /> Download
+                          <Download className="w-3.5 h-3.5" /> Download PDF
                         </button>
                       </div>
                       <button onClick={handleRestart} className="text-white/25 hover:text-white/50 text-xs text-center transition-colors">

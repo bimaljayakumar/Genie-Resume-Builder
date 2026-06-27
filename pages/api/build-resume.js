@@ -146,7 +146,6 @@ function buildResumeHTML(r, showPhoto) {
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>${esc(r.name)} — Resume</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -258,22 +257,6 @@ function buildResumeHTML(r, showPhoto) {
   .header-text .header { border: none; margin: 0; padding: 0; text-align: left; }
   .header-text .contact-line { justify-content: flex-start; }
 
-  /* Print bar */
-  .print-bar {
-    position: fixed; bottom: 0; left: 0; right: 0;
-    background: #111; padding: 10px 20px;
-    display: flex; justify-content: center; gap: 10px;
-    z-index: 100;
-  }
-  .print-btn {
-    background: #fff; color: #111; border: none;
-    padding: 8px 26px; border-radius: 6px; font-weight: 700;
-    font-size: 13px; cursor: pointer; font-family: inherit;
-  }
-  .print-btn:hover { background: #f3f4f6; }
-  .print-btn.primary { background: #16a34a; color: #fff; }
-  .print-btn.primary:hover { background: #15803d; }
-  .spacer { height: 56px; }
 </style>
 </head>
 <body>
@@ -382,37 +365,7 @@ ${r.languages?.length ? `
 
 </div><!-- end #resume-content -->
 
-<div class="print-bar no-print">
-  <button class="print-btn" onclick="window.close()">Close</button>
-  <button class="print-btn primary" onclick="downloadPDF()">Download PDF</button>
-</div>
-<div class="spacer no-print"></div>
 
-<script>
-function downloadPDF() {
-  const btn = document.querySelector('.print-bar');
-  btn.style.display = 'none';
-  const spacer = document.querySelector('.spacer');
-  if (spacer) spacer.style.display = 'none';
-
-  const element = document.getElementById('resume-content');
-  const name = ${JSON.stringify(r.name || 'resume')};
-  const filename = name.replace(/\\s+/g, '_') + '_Resume.pdf';
-
-  const opt = {
-    margin: [10, 12, 10, 12],
-    filename: filename,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, letterRendering: true },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-  };
-
-  html2pdf().set(opt).from(element).save().then(() => {
-    btn.style.display = 'flex';
-    if (spacer) spacer.style.display = 'block';
-  });
-}
-</script>
 
 </body>
 </html>`;
