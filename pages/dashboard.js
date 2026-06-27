@@ -230,6 +230,7 @@ export default function Dashboard() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);       // AI is thinking
   const [phase, setPhase] = useState('chat');          // 'chat' | 'generating' | 'done'
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [resumeHtml, setResumeHtml] = useState(null);
   const [userData, setUserData] = useState(null);      // final confirmed data
   const [history, setHistory] = useState([]);
@@ -434,7 +435,7 @@ export default function Dashboard() {
                         <span className="text-white/30 text-xs">· ATS Optimized</span>
                       </div>
                       <div className="flex gap-2">
-                        <button onClick={() => window.open(URL.createObjectURL(new Blob([resumeHtml], { type: 'text/html' })), '_blank')}
+                        <button onClick={() => setPreviewOpen(true)}
                           className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-white/80 text-xs font-medium transition-all hover:bg-white/10"
                           style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)' }}>
                           <Eye className="w-3.5 h-3.5" /> Preview
@@ -465,6 +466,28 @@ export default function Dashboard() {
         )}
 
       </div>
+
+      {/* ── RESUME PREVIEW MODAL ── */}
+      {previewOpen && resumeHtml && (
+        <div className="fixed inset-0 z-50 flex flex-col" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}>
+          <div className="flex items-center justify-between px-5 py-3 flex-shrink-0" style={{ background: 'rgba(0,0,0,0.6)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            <span className="text-white font-semibold text-sm">Resume Preview</span>
+            <div className="flex items-center gap-3">
+              <DownloadButton resumeHtml={resumeHtml} userName={userData?.name} />
+              <button onClick={() => setPreviewOpen(false)} className="text-white/50 hover:text-white transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-auto flex items-start justify-center p-4">
+            <iframe
+              srcDoc={resumeHtml}
+              style={{ width: '210mm', minHeight: '297mm', border: 'none', boxShadow: '0 8px 48px rgba(0,0,0,0.6)', background: '#fff', borderRadius: '2px' }}
+              title="Resume Preview"
+            />
+          </div>
+        </div>
+      )}
 
       <HistoryPanel
         open={historyOpen}
