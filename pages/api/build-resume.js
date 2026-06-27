@@ -8,6 +8,8 @@ export default async function handler(req, res) {
   const { userData } = req.body;
   if (!userData?.name || !userData?.role) return res.status(400).json({ error: 'Missing required fields' });
 
+  const isFresher = /fresher|student|no exp|0 year|zero exp|intern/i.test(userData.experience || '');
+
   try {
     const completion = await groq.chat.completions.create({
       model: 'llama-3.3-70b-versatile',
@@ -16,24 +18,25 @@ export default async function handler(req, res) {
       messages: [
         {
           role: 'system',
-          content: `You are a professional resume writer with 15 years of experience. You write resumes that pass ATS systems and impress hiring managers. Return ONLY valid JSON, no markdown, no extra text whatsoever.`,
+          content: `You are an expert resume writer who crafts resumes that get people hired at top companies. You write ATS-optimized, human-approved resumes. Return ONLY valid JSON, no markdown, no extra text.`,
         },
         {
           role: 'user',
-          content: `Create a complete ATS-optimized professional resume for this candidate.
+          content: `Create a powerful ATS-optimized resume for this candidate.
 
 CANDIDATE DATA:
 - Name: ${userData.name}
 - Email: ${userData.email}
-- Phone: ${userData.phone}  
+- Phone: ${userData.phone}
 - Location: ${userData.location}
 - Target Role: ${userData.role}
 - Education: ${userData.education}
 - Work Experience: ${userData.experience}
 - Skills: ${userData.skills}
 - Extra Info: ${userData.extra || 'none'}
+- Is Fresher/Student: ${isFresher ? 'YES' : 'NO'}
 
-Return ONLY this exact JSON (no markdown, no extra text):
+Return ONLY this exact JSON:
 {
   "name": "full name",
   "title": "exact target job title",
@@ -43,7 +46,7 @@ Return ONLY this exact JSON (no markdown, no extra text):
   "linkedin": "linkedin url if provided else empty string",
   "github": "github url if provided else empty string",
   "website": "website if provided else empty string",
-  "summary": "A 2-3 sentence professional summary. Start with job title and years of experience. Include 2-3 key skills and a value statement. Make it ATS-friendly with role-specific keywords.",
+  "summary": "Write 2-3 sentences. CRITICAL RULES: (1) NEVER mention years of experience or say 'X years'. (2) For freshers/students: open with their degree/field and key technical strengths, then mention what they bring to the role — e.g. 'Computer Science graduate specializing in cloud security and full-stack development. Proficient in ethical hacking, penetration testing, and AWS. Passionate about building secure, scalable systems and solving real-world challenges.' (3) For experienced: open with the role title and domain expertise only, no year count.",
   "experience": [
     {
       "company": "Company Name",
@@ -51,47 +54,48 @@ Return ONLY this exact JSON (no markdown, no extra text):
       "location": "City, Country",
       "duration": "Month Year – Month Year",
       "points": [
-        "Started with action verb. Quantify impact with numbers/percentages where possible.",
-        "Another strong achievement with measurable result.",
-        "Third bullet showing technical skill or leadership."
+        "Action verb + task + measurable impact.",
+        "Action verb + task + measurable impact.",
+        "Action verb + task + measurable impact."
       ]
     }
   ],
   "education": [
     {
-      "degree": "Full Degree Name e.g. Bachelor of Technology in Computer Science",
+      "degree": "Full Degree Name",
       "institution": "Full Institution Name",
       "location": "City, Country",
-      "year": "Year of graduation or expected year",
-      "gpa": "GPA or grade if known else empty string"
+      "year": "Graduation year or Expected Year",
+      "gpa": "GPA if known else empty string"
     }
   ],
   "skills": {
     "technical": ["skill1", "skill2", "skill3"],
     "tools": ["tool1", "tool2"],
-    "soft": ["Communication", "Problem Solving", "Teamwork"]
+    "soft": ["Communication", "Problem Solving", "Team Collaboration"]
   },
   "projects": [
     {
       "name": "Project Name",
-      "tech": "Technologies used",
-      "description": "One sentence describing what it does and its impact.",
+      "tech": "Tech stack used",
+      "description": "What it does and the impact or outcome.",
       "link": "github or live link if provided else empty string"
     }
   ],
   "certifications": ["Certification Name – Issuing Body, Year"],
   "languages": ["English – Fluent"],
-  "achievements": ["Any notable award or achievement"]
+  "achievements": ["Notable award or achievement"]
 }
 
-IMPORTANT RULES:
-- If experience is "fresher" or student, leave experience array empty and make projects section strong instead
-- Use STRONG action verbs: Developed, Engineered, Designed, Led, Built, Optimized, Implemented, Achieved, Delivered, Increased, Reduced
-- Add ATS keywords specific to the target role throughout
-- Make bullets impactful and quantified where possible
-- Skills must be relevant to the target role
-- Keep summary under 60 words
-- If any section has no data, use empty array []`,
+STRICT RULES:
+- NEVER write "0 years", "zero years", "X years of experience" in summary — ever
+- For freshers: leave experience array as [] and write 2-3 strong projects instead
+- Summary must highlight skills and education, not lack of experience
+- Use strong action verbs: Developed, Built, Engineered, Designed, Implemented, Optimized, Led, Delivered, Architected, Automated
+- Every bullet must start with an action verb
+- Skills must match the target role closely
+- If no certifications or achievements exist, use []
+- Keep summary under 65 words`,
         },
       ],
     });
@@ -110,30 +114,31 @@ IMPORTANT RULES:
 }
 
 function buildResumeHTML(r, showPhoto) {
-  // Flatten skills — handle both object and array format
   let skillsHtml = '';
   if (r.skills) {
     if (Array.isArray(r.skills)) {
-      skillsHtml = r.skills.map(s => `<span class="skill-chip">${esc(s)}</span>`).join('');
+      skillsHtml = `<div class="skill-row">${r.skills.map(s => `<span class="skill-chip">${esc(s)}</span>`).join('')}</div>`;
     } else {
       const cats = [];
       if (r.skills.technical?.length) cats.push({ label: 'Technical', items: r.skills.technical });
       if (r.skills.tools?.length) cats.push({ label: 'Tools & Platforms', items: r.skills.tools });
       if (r.skills.soft?.length) cats.push({ label: 'Soft Skills', items: r.skills.soft });
       skillsHtml = cats.map(c =>
-        `<div class="skill-row"><span class="skill-cat">${esc(c.label)}:</span> ${c.items.map(s => `<span class="skill-chip">${esc(s)}</span>`).join('')}</div>`
+        `<div class="skill-row"><span class="skill-cat">${esc(c.label)}:</span>${c.items.map(s => `<span class="skill-chip">${esc(s)}</span>`).join('')}</div>`
       ).join('');
     }
   }
 
-  const contactItems = [
+  const contactParts = [
     r.email ? `<a href="mailto:${esc(r.email)}">${esc(r.email)}</a>` : '',
     r.phone ? `<span>${esc(r.phone)}</span>` : '',
     r.location ? `<span>${esc(r.location)}</span>` : '',
     r.linkedin ? `<a href="https://${esc(r.linkedin)}" target="_blank">${esc(r.linkedin)}</a>` : '',
     r.github ? `<a href="https://${esc(r.github)}" target="_blank">${esc(r.github)}</a>` : '',
     r.website ? `<a href="${esc(r.website)}" target="_blank">${esc(r.website)}</a>` : '',
-  ].filter(Boolean).join('<span class="sep">|</span>');
+  ].filter(Boolean);
+
+  const contactItems = contactParts.join('<span class="sep">|</span>');
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -141,140 +146,149 @@ function buildResumeHTML(r, showPhoto) {
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>${esc(r.name)} — Resume</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
-  /* ── Reset ── */
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-  /* ── Page / Print ── */
   html { font-size: 10.5pt; }
   body {
     font-family: 'Arial', 'Helvetica Neue', Helvetica, sans-serif;
     color: #1a1a1a;
     background: #fff;
-    line-height: 1.6;
+    line-height: 1.55;
+  }
+
+  #resume-content {
     max-width: 210mm;
     margin: 0 auto;
-    padding: 18mm 18mm 18mm 18mm;
+    padding: 16mm 18mm 16mm 18mm;
+    background: #fff;
   }
-  @page { size: A4; margin: 18mm 18mm; }
+
   @media print {
-    body { padding: 0; }
     .no-print { display: none !important; }
     a { color: inherit !important; text-decoration: none !important; }
+    #resume-content { padding: 0; }
   }
 
-  /* ── Header ── */
-  .header { text-align: center; margin-bottom: 16px; border-bottom: 2px solid #1a1a1a; padding-bottom: 12px; }
-  .name { font-size: 22pt; font-weight: 700; letter-spacing: 0.5px; color: #0a0a0a; line-height: 1.2; }
-  .job-title { font-size: 10.5pt; color: #444; font-weight: 500; margin-top: 4px; letter-spacing: 0.3px; }
+  /* Header */
+  .header { text-align: center; margin-bottom: 14px; border-bottom: 2px solid #111; padding-bottom: 10px; }
+  .name { font-size: 20pt; font-weight: 700; letter-spacing: 0.5px; color: #0a0a0a; line-height: 1.15; text-transform: uppercase; }
+  .job-title { font-size: 10pt; color: #444; font-weight: 600; margin-top: 3px; letter-spacing: 0.5px; }
   .contact-line {
-    display: flex; flex-wrap: wrap; justify-content: center;
-    gap: 4px 0; margin-top: 8px; font-size: 8.5pt; color: #333;
+    display: flex; flex-wrap: wrap; justify-content: center; align-items: center;
+    gap: 0; margin-top: 7px; font-size: 8.5pt; color: #333;
   }
-  .contact-line a { color: #333; text-decoration: none; }
-  .contact-line a:hover { text-decoration: underline; }
-  .sep { margin: 0 8px; color: #999; }
+  .contact-line a { color: #1a1a1a; text-decoration: none; }
+  .sep { margin: 0 7px; color: #aaa; }
 
-  /* ── Section ── */
-  .section { margin-bottom: 18px; }
+  /* Section */
+  .section { margin-bottom: 14px; }
   .section-heading {
-    font-size: 9.5pt;
+    font-size: 8.5pt;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: #0a0a0a;
-    border-bottom: 1.5px solid #1a1a1a;
-    padding-bottom: 3px;
-    margin-bottom: 10px;
+    letter-spacing: 0.15em;
+    color: #111;
+    border-bottom: 1.5px solid #111;
+    padding-bottom: 2px;
+    margin-bottom: 9px;
   }
 
-  /* ── Summary ── */
-  .summary-text { font-size: 9.5pt; color: #222; line-height: 1.7; }
+  /* Summary */
+  .summary-text { font-size: 9.5pt; color: #222; line-height: 1.65; }
 
-  /* ── Experience ── */
-  .exp-item { margin-bottom: 14px; }
-  .exp-top { display: flex; justify-content: space-between; align-items: flex-start; }
-  .exp-company { font-weight: 700; font-size: 10pt; color: #0a0a0a; }
-  .exp-duration { font-size: 8.5pt; color: #555; white-space: nowrap; padding-top: 1px; }
-  .exp-role-line { display: flex; justify-content: space-between; margin-top: 2px; }
-  .exp-role { font-size: 9.5pt; font-style: italic; color: #333; }
+  /* Experience */
+  .exp-item { margin-bottom: 12px; }
+  .exp-item:last-child { margin-bottom: 0; }
+  .exp-header { display: flex; justify-content: space-between; align-items: baseline; }
+  .exp-company { font-weight: 700; font-size: 9.5pt; color: #0a0a0a; }
+  .exp-duration { font-size: 8.5pt; color: #555; white-space: nowrap; }
+  .exp-sub { display: flex; justify-content: space-between; align-items: baseline; margin-top: 1px; }
+  .exp-role { font-size: 9pt; font-style: italic; color: #444; }
   .exp-loc { font-size: 8.5pt; color: #777; }
-  .exp-bullets { margin-top: 6px; padding-left: 16px; }
-  .exp-bullets li { font-size: 9pt; color: #222; margin-bottom: 4px; line-height: 1.6; }
+  .exp-bullets { margin-top: 5px; padding-left: 15px; }
+  .exp-bullets li { font-size: 9pt; color: #222; margin-bottom: 3px; line-height: 1.55; }
 
-  /* ── Education ── */
-  .edu-item { margin-bottom: 12px; }
-  .edu-top { display: flex; justify-content: space-between; align-items: flex-start; }
+  /* Education */
+  .edu-item { margin-bottom: 10px; }
+  .edu-item:last-child { margin-bottom: 0; }
+  .edu-header { display: flex; justify-content: space-between; align-items: baseline; }
   .edu-degree { font-weight: 700; font-size: 9.5pt; color: #0a0a0a; }
   .edu-year { font-size: 8.5pt; color: #555; white-space: nowrap; }
   .edu-inst { font-size: 9pt; color: #444; margin-top: 2px; }
-  .edu-meta { font-size: 8.5pt; color: #777; margin-top: 2px; }
+  .edu-meta { font-size: 8.5pt; color: #666; margin-top: 1px; }
 
-  /* ── Skills ── */
-  .skill-row { margin-bottom: 6px; font-size: 9pt; line-height: 1.7; }
-  .skill-cat { font-weight: 700; color: #0a0a0a; margin-right: 4px; }
+  /* Skills */
+  .skill-row { margin-bottom: 5px; font-size: 9pt; line-height: 1.65; display: flex; flex-wrap: wrap; align-items: center; gap: 3px 0; }
+  .skill-cat { font-weight: 700; color: #111; margin-right: 6px; white-space: nowrap; }
   .skill-chip {
     display: inline-block;
-    background: #f3f4f6;
-    border: 1px solid #d1d5db;
-    border-radius: 3px;
-    padding: 2px 7px;
     font-size: 8.5pt;
     color: #1a1a1a;
-    margin: 2px 2px;
+    margin: 1px 3px 1px 0;
   }
+  .skill-chip::after { content: ','; }
+  .skill-chip:last-child::after { content: ''; }
 
-  /* ── Projects ── */
-  .project-item { margin-bottom: 12px; }
-  .project-top { display: flex; justify-content: space-between; align-items: baseline; }
+  /* Projects */
+  .project-item { margin-bottom: 10px; }
+  .project-item:last-child { margin-bottom: 0; }
+  .project-header { display: flex; justify-content: space-between; align-items: baseline; }
   .project-name { font-weight: 700; font-size: 9.5pt; color: #0a0a0a; }
-  .project-link { font-size: 8pt; color: #555; text-decoration: none; }
-  .project-tech { font-size: 8.5pt; font-style: italic; color: #555; margin-top: 2px; }
-  .project-desc { font-size: 9pt; color: #222; margin-top: 3px; line-height: 1.6; }
+  .project-link { font-size: 8pt; color: #1a56db; text-decoration: none; }
+  .project-tech { font-size: 8.5pt; color: #555; margin-top: 1px; }
+  .project-tech span { font-weight: 600; }
+  .project-desc { font-size: 9pt; color: #222; margin-top: 3px; line-height: 1.55; }
 
-  /* ── Certs / Awards ── */
-  .list-item { font-size: 9pt; color: #222; margin-bottom: 4px; padding-left: 14px; position: relative; line-height: 1.6; }
+  /* Lists (certs, achievements, languages) */
+  .list-items { display: flex; flex-direction: column; gap: 3px; }
+  .list-item { font-size: 9pt; color: #222; padding-left: 13px; position: relative; line-height: 1.55; }
   .list-item::before { content: '•'; position: absolute; left: 0; color: #555; }
 
-  /* ── Photo ── */
+  /* Photo layout */
+  .header-with-photo { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 14px; border-bottom: 2px solid #111; padding-bottom: 10px; }
   .photo-box {
-    width: 80px; height: 95px; border-radius: 4px;
-    background: #e5e7eb; border: 1px solid #d1d5db;
+    width: 75px; height: 90px; border-radius: 3px;
+    background: #e5e7eb; border: 1px solid #ccc;
     display: flex; align-items: center; justify-content: center;
-    font-size: 8pt; color: #9ca3af; text-align: center;
-    flex-shrink: 0;
+    font-size: 7.5pt; color: #9ca3af; text-align: center; flex-shrink: 0;
   }
-  .header-inner { display: flex; gap: 14px; align-items: flex-start; }
-  .header-text { flex: 1; text-align: left; }
+  .header-text { flex: 1; }
+  .header-text .header { border: none; margin: 0; padding: 0; text-align: left; }
   .header-text .contact-line { justify-content: flex-start; }
 
-  /* ── Print button ── */
+  /* Print bar */
   .print-bar {
     position: fixed; bottom: 0; left: 0; right: 0;
-    background: #1a1a1a; padding: 10px 20px;
-    display: flex; justify-content: center; gap: 12px;
+    background: #111; padding: 10px 20px;
+    display: flex; justify-content: center; gap: 10px;
     z-index: 100;
   }
   .print-btn {
-    background: #fff; color: #1a1a1a; border: none;
-    padding: 8px 28px; border-radius: 6px; font-weight: 700;
+    background: #fff; color: #111; border: none;
+    padding: 8px 26px; border-radius: 6px; font-weight: 700;
     font-size: 13px; cursor: pointer; font-family: inherit;
   }
   .print-btn:hover { background: #f3f4f6; }
   .print-btn.primary { background: #16a34a; color: #fff; }
   .print-btn.primary:hover { background: #15803d; }
+  .spacer { height: 56px; }
 </style>
 </head>
 <body>
 
-<!-- ── HEADER ── -->
+<div id="resume-content">
+
 ${showPhoto ? `
-<div class="header-inner" style="margin-bottom:10px;border-bottom:2px solid #1a1a1a;padding-bottom:10px;">
+<div class="header-with-photo">
   <div class="photo-box">Photo<br/>Here</div>
   <div class="header-text">
-    <div class="name">${esc(r.name)}</div>
-    <div class="job-title">${esc(r.title)}</div>
-    <div class="contact-line">${contactItems}</div>
+    <div class="header">
+      <div class="name">${esc(r.name)}</div>
+      <div class="job-title">${esc(r.title)}</div>
+      <div class="contact-line">${contactItems}</div>
+    </div>
   </div>
 </div>` : `
 <div class="header">
@@ -283,24 +297,22 @@ ${showPhoto ? `
   <div class="contact-line">${contactItems}</div>
 </div>`}
 
-<!-- ── PROFESSIONAL SUMMARY ── -->
 ${r.summary ? `
 <div class="section">
   <div class="section-heading">Professional Summary</div>
   <div class="summary-text">${esc(r.summary)}</div>
 </div>` : ''}
 
-<!-- ── WORK EXPERIENCE ── -->
 ${r.experience?.length ? `
 <div class="section">
   <div class="section-heading">Work Experience</div>
   ${r.experience.map(e => `
   <div class="exp-item">
-    <div class="exp-top">
+    <div class="exp-header">
       <div class="exp-company">${esc(e.company)}</div>
       <div class="exp-duration">${esc(e.duration)}</div>
     </div>
-    <div class="exp-role-line">
+    <div class="exp-sub">
       <div class="exp-role">${esc(e.role)}</div>
       ${e.location ? `<div class="exp-loc">${esc(e.location)}</div>` : ''}
     </div>
@@ -310,70 +322,97 @@ ${r.experience?.length ? `
   </div>`).join('')}
 </div>` : ''}
 
-<!-- ── EDUCATION ── -->
 ${r.education?.length ? `
 <div class="section">
   <div class="section-heading">Education</div>
   ${r.education.map(e => `
   <div class="edu-item">
-    <div class="edu-top">
+    <div class="edu-header">
       <div class="edu-degree">${esc(e.degree)}</div>
       <div class="edu-year">${esc(e.year)}</div>
     </div>
-    <div class="edu-inst">${esc(e.institution)}${e.location ? ` — ${esc(e.location)}` : ''}</div>
+    <div class="edu-inst">${esc(e.institution)}${e.location ? ` &mdash; ${esc(e.location)}` : ''}</div>
     ${e.gpa ? `<div class="edu-meta">GPA: ${esc(e.gpa)}</div>` : ''}
   </div>`).join('')}
 </div>` : ''}
 
-<!-- ── PROJECTS ── -->
 ${r.projects?.length ? `
 <div class="section">
   <div class="section-heading">Projects</div>
   ${r.projects.map(p => `
   <div class="project-item">
-    <div class="project-top">
+    <div class="project-header">
       <div class="project-name">${esc(p.name)}</div>
       ${p.link ? `<a class="project-link" href="${esc(p.link)}" target="_blank">${esc(p.link)}</a>` : ''}
     </div>
-    ${p.tech ? `<div class="project-tech">Tech: ${esc(p.tech)}</div>` : ''}
+    ${p.tech ? `<div class="project-tech"><span>Tech:</span> ${esc(p.tech)}</div>` : ''}
     <div class="project-desc">${esc(p.description)}</div>
   </div>`).join('')}
 </div>` : ''}
 
-<!-- ── SKILLS ── -->
 ${skillsHtml ? `
 <div class="section">
   <div class="section-heading">Skills</div>
   ${skillsHtml}
 </div>` : ''}
 
-<!-- ── CERTIFICATIONS ── -->
 ${r.certifications?.length ? `
 <div class="section">
   <div class="section-heading">Certifications</div>
-  ${r.certifications.map(c => `<div class="list-item">${esc(c)}</div>`).join('')}
+  <div class="list-items">
+    ${r.certifications.map(c => `<div class="list-item">${esc(c)}</div>`).join('')}
+  </div>
 </div>` : ''}
 
-<!-- ── ACHIEVEMENTS ── -->
 ${r.achievements?.length ? `
 <div class="section">
   <div class="section-heading">Achievements</div>
-  ${r.achievements.map(a => `<div class="list-item">${esc(a)}</div>`).join('')}
+  <div class="list-items">
+    ${r.achievements.map(a => `<div class="list-item">${esc(a)}</div>`).join('')}
+  </div>
 </div>` : ''}
 
-<!-- ── LANGUAGES ── -->
 ${r.languages?.length ? `
 <div class="section">
   <div class="section-heading">Languages</div>
-  ${r.languages.map(l => `<div class="list-item">${esc(l)}</div>`).join('')}
+  <div class="list-items">
+    ${r.languages.map(l => `<div class="list-item">${esc(l)}</div>`).join('')}
+  </div>
 </div>` : ''}
 
-<!-- ── PRINT BAR ── -->
+</div><!-- end #resume-content -->
+
 <div class="print-bar no-print">
   <button class="print-btn" onclick="window.close()">Close</button>
-  <button class="print-btn primary" onclick="window.print()">Download PDF</button>
+  <button class="print-btn primary" onclick="downloadPDF()">Download PDF</button>
 </div>
-<div style="height:52px" class="no-print"></div>
+<div class="spacer no-print"></div>
+
+<script>
+function downloadPDF() {
+  const btn = document.querySelector('.print-bar');
+  btn.style.display = 'none';
+  const spacer = document.querySelector('.spacer');
+  if (spacer) spacer.style.display = 'none';
+
+  const element = document.getElementById('resume-content');
+  const name = ${JSON.stringify(r.name || 'resume')};
+  const filename = name.replace(/\\s+/g, '_') + '_Resume.pdf';
+
+  const opt = {
+    margin: [10, 12, 10, 12],
+    filename: filename,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
+  html2pdf().set(opt).from(element).save().then(() => {
+    btn.style.display = 'flex';
+    if (spacer) spacer.style.display = 'block';
+  });
+}
+</script>
 
 </body>
 </html>`;
