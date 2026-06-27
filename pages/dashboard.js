@@ -315,11 +315,11 @@ export default function Dashboard() {
         }, 500);
       } else {
         setPhase('chat');
-        addMsg('ai', 'Something went wrong generating the resume. Want to try again?');
+        addMsg('ai', result.error || 'Something went wrong generating the resume. Want to try again?');
       }
-    } catch {
+    } catch (err) {
       setPhase('chat');
-      addMsg('ai', 'Network error. Please check your connection.');
+      addMsg('ai', 'Network error while building your resume. Please check your connection and try again.');
     }
   }
 
