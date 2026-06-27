@@ -100,6 +100,9 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error('Groq error:', err.message);
+    if (err.status === 429 || err.message?.includes('rate_limit_exceeded') || err.message?.includes('Rate limit')) {
+      return res.status(429).json({ error: 'AI rate limit reached. Please wait a few minutes and try again.' });
+    }
     return res.status(500).json({ error: 'AI service error. Please try again in a moment.' });
   }
 }

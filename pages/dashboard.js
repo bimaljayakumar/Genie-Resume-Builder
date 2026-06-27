@@ -315,7 +315,10 @@ export default function Dashboard() {
         }, 500);
       } else {
         setPhase('chat');
-        addMsg('ai', result.error || 'Something went wrong generating the resume. Want to try again?');
+        const msg = res.status === 429
+          ? '⏳ AI rate limit reached. Please wait a few minutes and try again.'
+          : result.error || 'Something went wrong generating the resume. Want to try again?';
+        addMsg('ai', msg);
       }
     } catch (err) {
       setPhase('chat');

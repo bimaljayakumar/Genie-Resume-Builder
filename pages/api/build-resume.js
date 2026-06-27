@@ -90,8 +90,8 @@ export default async function handler(req, res) {
   try {
     const completion = await groq.chat.completions.create({
       model: 'llama-3.3-70b-versatile',
-      temperature: 0.2, // very low — factual, structured, no creativity
-      max_tokens: 4000,
+      temperature: 0.2,
+      max_tokens: 1800,
       messages: [
         { role: 'system', content: SYSTEM_PROMPT_BUILD },
         { role: 'user',   content: buildPrompt(safe, isFresher, hasRealProjects) },
@@ -155,6 +155,9 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error('Build resume error:', err.message, err.stack);
+    if (err.status === 429 || err.message?.includes('rate_limit_exceeded') || err.message?.includes('Rate limit')) {
+      return res.status(429).json({ error: 'AI rate limit reached. Please wait a few minutes and try again.' });
+    }
     return res.status(500).json({ error: err.message || 'Failed to generate resume. Please try again.' });
   }
 }
