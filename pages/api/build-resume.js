@@ -151,12 +151,12 @@ function buildResumeHTML(r, showPhoto) {
     font-family: 'Arial', 'Helvetica Neue', Helvetica, sans-serif;
     color: #1a1a1a;
     background: #fff;
-    line-height: 1.5;
+    line-height: 1.6;
     max-width: 210mm;
     margin: 0 auto;
-    padding: 14mm 16mm 14mm 16mm;
+    padding: 18mm 18mm 18mm 18mm;
   }
-  @page { size: A4; margin: 14mm 16mm; }
+  @page { size: A4; margin: 18mm 18mm; }
   @media print {
     body { padding: 0; }
     .no-print { display: none !important; }
@@ -164,19 +164,19 @@ function buildResumeHTML(r, showPhoto) {
   }
 
   /* ── Header ── */
-  .header { text-align: center; margin-bottom: 10px; border-bottom: 2px solid #1a1a1a; padding-bottom: 10px; }
-  .name { font-size: 22pt; font-weight: 700; letter-spacing: 0.5px; color: #0a0a0a; line-height: 1.1; }
-  .job-title { font-size: 10.5pt; color: #444; font-weight: 500; margin-top: 2px; letter-spacing: 0.3px; }
+  .header { text-align: center; margin-bottom: 16px; border-bottom: 2px solid #1a1a1a; padding-bottom: 12px; }
+  .name { font-size: 22pt; font-weight: 700; letter-spacing: 0.5px; color: #0a0a0a; line-height: 1.2; }
+  .job-title { font-size: 10.5pt; color: #444; font-weight: 500; margin-top: 4px; letter-spacing: 0.3px; }
   .contact-line {
     display: flex; flex-wrap: wrap; justify-content: center;
-    gap: 4px 0; margin-top: 6px; font-size: 8.5pt; color: #333;
+    gap: 4px 0; margin-top: 8px; font-size: 8.5pt; color: #333;
   }
   .contact-line a { color: #333; text-decoration: none; }
   .contact-line a:hover { text-decoration: underline; }
-  .sep { margin: 0 6px; color: #999; }
+  .sep { margin: 0 8px; color: #999; }
 
   /* ── Section ── */
-  .section { margin-bottom: 11px; }
+  .section { margin-bottom: 18px; }
   .section-heading {
     font-size: 9.5pt;
     font-weight: 700;
@@ -184,56 +184,56 @@ function buildResumeHTML(r, showPhoto) {
     letter-spacing: 0.12em;
     color: #0a0a0a;
     border-bottom: 1.5px solid #1a1a1a;
-    padding-bottom: 2px;
-    margin-bottom: 7px;
+    padding-bottom: 3px;
+    margin-bottom: 10px;
   }
 
   /* ── Summary ── */
-  .summary-text { font-size: 9.5pt; color: #222; line-height: 1.65; }
+  .summary-text { font-size: 9.5pt; color: #222; line-height: 1.7; }
 
   /* ── Experience ── */
-  .exp-item { margin-bottom: 9px; }
+  .exp-item { margin-bottom: 14px; }
   .exp-top { display: flex; justify-content: space-between; align-items: flex-start; }
   .exp-company { font-weight: 700; font-size: 10pt; color: #0a0a0a; }
   .exp-duration { font-size: 8.5pt; color: #555; white-space: nowrap; padding-top: 1px; }
-  .exp-role-line { display: flex; justify-content: space-between; margin-top: 1px; }
+  .exp-role-line { display: flex; justify-content: space-between; margin-top: 2px; }
   .exp-role { font-size: 9.5pt; font-style: italic; color: #333; }
   .exp-loc { font-size: 8.5pt; color: #777; }
-  .exp-bullets { margin-top: 4px; padding-left: 14px; }
-  .exp-bullets li { font-size: 9pt; color: #222; margin-bottom: 2.5px; line-height: 1.55; }
+  .exp-bullets { margin-top: 6px; padding-left: 16px; }
+  .exp-bullets li { font-size: 9pt; color: #222; margin-bottom: 4px; line-height: 1.6; }
 
   /* ── Education ── */
-  .edu-item { margin-bottom: 7px; }
+  .edu-item { margin-bottom: 12px; }
   .edu-top { display: flex; justify-content: space-between; align-items: flex-start; }
   .edu-degree { font-weight: 700; font-size: 9.5pt; color: #0a0a0a; }
   .edu-year { font-size: 8.5pt; color: #555; white-space: nowrap; }
-  .edu-inst { font-size: 9pt; color: #444; margin-top: 1px; }
-  .edu-meta { font-size: 8.5pt; color: #777; margin-top: 1px; }
+  .edu-inst { font-size: 9pt; color: #444; margin-top: 2px; }
+  .edu-meta { font-size: 8.5pt; color: #777; margin-top: 2px; }
 
   /* ── Skills ── */
-  .skill-row { margin-bottom: 4px; font-size: 9pt; line-height: 1.6; }
+  .skill-row { margin-bottom: 6px; font-size: 9pt; line-height: 1.7; }
   .skill-cat { font-weight: 700; color: #0a0a0a; margin-right: 4px; }
   .skill-chip {
     display: inline-block;
     background: #f3f4f6;
     border: 1px solid #d1d5db;
     border-radius: 3px;
-    padding: 1px 6px;
+    padding: 2px 7px;
     font-size: 8.5pt;
     color: #1a1a1a;
-    margin: 1.5px 2px;
+    margin: 2px 2px;
   }
 
   /* ── Projects ── */
-  .project-item { margin-bottom: 7px; }
+  .project-item { margin-bottom: 12px; }
   .project-top { display: flex; justify-content: space-between; align-items: baseline; }
   .project-name { font-weight: 700; font-size: 9.5pt; color: #0a0a0a; }
   .project-link { font-size: 8pt; color: #555; text-decoration: none; }
-  .project-tech { font-size: 8.5pt; font-style: italic; color: #555; margin-top: 1px; }
-  .project-desc { font-size: 9pt; color: #222; margin-top: 2px; line-height: 1.55; }
+  .project-tech { font-size: 8.5pt; font-style: italic; color: #555; margin-top: 2px; }
+  .project-desc { font-size: 9pt; color: #222; margin-top: 3px; line-height: 1.6; }
 
   /* ── Certs / Awards ── */
-  .list-item { font-size: 9pt; color: #222; margin-bottom: 2.5px; padding-left: 12px; position: relative; line-height: 1.55; }
+  .list-item { font-size: 9pt; color: #222; margin-bottom: 4px; padding-left: 14px; position: relative; line-height: 1.6; }
   .list-item::before { content: '•'; position: absolute; left: 0; color: #555; }
 
   /* ── Photo ── */
