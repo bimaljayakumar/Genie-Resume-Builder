@@ -46,19 +46,22 @@ export default async function handler(req, res) {
 
     const page = await browser.newPage();
 
-    // Block external network requests inside the page — prevents SSRF
+    // Block only scripts and iframes — allow fonts/stylesheets so resume renders correctly
     await page.setRequestInterception(true);
     page.on('request', (request) => {
       const type = request.resourceType();
-      // Allow only document and stylesheet, block scripts/images/fonts from external URLs
-      if (['document', 'stylesheet'].includes(type)) {
-        request.continue();
-      } else {
+      const url  = request.url();
+      // Block scripts and iframes, allow everything else (fonts, stylesheets)
+      if (type === 'script' || type === 'media' || type === 'websocket') {
         request.abort();
+      } else if (type === 'document' && url !== 'about:blank' && !url.startsWith('data:')) {
+        request.abort();
+      } else {
+        request.continue();
       }
     });
 
-    await page.setContent(safeHtml, { waitUntil: 'domcontentloaded' });
+    await page.setContent(safeHtml, { waitUntil: 'networkidle0', timeout: 30000 });
 
     const pdf = await page.pdf({
       format: 'A4',

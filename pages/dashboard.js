@@ -286,9 +286,9 @@ export default function Dashboard() {
         setPhase('generating');
         await generateResume(data.userData);
       }
-    } catch {
+    } catch (err) {
       setLoading(false);
-      addMsg('ai', 'Something went wrong. Please try again.');
+      addMsg('ai', 'Something went wrong: ' + (err?.message || 'Please try again.'));
     }
   }
 
