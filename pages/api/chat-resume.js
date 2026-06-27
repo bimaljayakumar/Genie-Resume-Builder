@@ -40,9 +40,21 @@ export default async function handler(req, res) {
   const { history } = req.body;
   if (!history?.length) return res.status(400).json({ error: 'No history' });
 
+  // Decode HTML entities from user messages (e.g. when user pastes rendered resume text)
+  function decodeEntities(str) {
+    return str
+      .replace(/&quot;/g, '"')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&#39;/g, "'")
+      .replace(/&nbsp;/g, ' ');
+  }
+
   // Validate history entries
   const validHistory = history
     .filter(m => m && typeof m.text === 'string' && m.text.trim().length > 0)
+    .map(m => ({ ...m, text: m.role === 'user' ? decodeEntities(m.text) : m.text }))
     .slice(-30); // cap at last 30 messages to avoid token overflow
 
   if (!validHistory.length) return res.status(400).json({ error: 'No valid history' });
