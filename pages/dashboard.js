@@ -27,34 +27,59 @@ function renderMd(text) {
     .replace(/\n/g, '<br/>');
 }
 
-function Bubble({ role, text, isLoading }) {
+function Bubble({ role, text, isLoading, userInitial }) {
   const isUser = role === 'user';
   return (
-    <div className={`flex w-full mb-5 ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex w-full mb-4 sm:mb-5 ${isUser ? 'justify-end' : 'justify-start'} items-end gap-2 sm:gap-3`}>
+
+      {/* AI avatar */}
       {!isUser && (
-        <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mr-3 mt-0.5"
-          style={{ background: 'linear-gradient(135deg,#34d399,#06b6d4)' }}>
-          <Sparkles className="w-4 h-4 text-black" />
+        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center flex-shrink-0"
+          style={{
+            background: 'rgba(255,255,255,0.08)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+          }}>
+          <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white/70" />
         </div>
       )}
-      <div className={`max-w-[78%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${isUser ? 'rounded-tr-sm' : 'rounded-tl-sm'}`}
-        style={isUser
-          ? { background: 'linear-gradient(135deg,#34d399,#06b6d4)', color: '#000', fontWeight: 500 }
-          : { background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.9)' }
-        }>
+
+      {/* Bubble */}
+      <div
+        className={`max-w-[82%] sm:max-w-[75%] px-4 py-3 text-sm leading-relaxed ${
+          isUser ? 'rounded-2xl rounded-br-sm' : 'rounded-2xl rounded-bl-sm'
+        }`}
+        style={{
+          background: 'rgba(255,255,255,0.07)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: isUser
+            ? '1px solid rgba(255,255,255,0.18)'
+            : '1px solid rgba(255,255,255,0.09)',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.2)',
+          color: isUser ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.85)',
+        }}>
         {isLoading
-          ? <span className="flex gap-1 items-center h-4">
-              <span className="w-1.5 h-1.5 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: '300ms' }} />
+          ? <span className="flex gap-1.5 items-center h-4">
+              <span className="w-1.5 h-1.5 rounded-full bg-white/40 animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-white/40 animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-white/40 animate-bounce" style={{ animationDelay: '300ms' }} />
             </span>
           : <span dangerouslySetInnerHTML={{ __html: renderMd(text) }} />
         }
       </div>
+
+      {/* User avatar */}
       {isUser && (
-        <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ml-3 mt-0.5"
-          style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.15)' }}>
-          <span className="text-white text-xs font-bold">Y</span>
+        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center flex-shrink-0"
+          style={{
+            background: 'rgba(255,255,255,0.08)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+          }}>
+          <span className="text-white/70 text-xs font-semibold">{userInitial || 'U'}</span>
         </div>
       )}
     </div>
@@ -270,6 +295,7 @@ export default function Dashboard() {
   }
 
   const firstName = session?.user?.name?.split(' ')[0] || 'there';
+  const userInitial = session?.user?.name?.[0]?.toUpperCase() || 'U';
   const hasChat = messages.length > 0;
   const inputDisabled = loading || phase === 'generating';
 
@@ -318,7 +344,7 @@ export default function Dashboard() {
             <div className="w-full max-w-2xl flex flex-col items-center gap-8">
               <div className="text-center">
                 <h1 className="text-white text-3xl sm:text-4xl font-black tracking-tight mb-3">
-                  Hey {firstName} 👋
+                  Hey {firstName}
                 </h1>
                 <p className="text-white/50 text-base leading-relaxed max-w-md mx-auto">
                   Paste your existing resume and I'll build a professional ATS-ready version instantly. Or just describe yourself.
@@ -348,28 +374,28 @@ export default function Dashboard() {
           <main className="flex-1 flex flex-col items-center overflow-hidden">
             <div className="w-full max-w-2xl flex flex-col h-full">
 
-              <div className="flex-1 overflow-y-auto px-4 py-4" style={{ minHeight: 0 }}>
-                {messages.map((m, i) => <Bubble key={i} role={m.role} text={m.text} />)}
-                {loading && <Bubble role="ai" text="" isLoading />}
+              <div className="flex-1 overflow-y-auto px-3 sm:px-5 py-4 sm:py-6" style={{ minHeight: 0 }}>
+                {messages.map((m, i) => <Bubble key={i} role={m.role} text={m.text} userInitial={userInitial} />)}
+                {loading && <Bubble role="ai" text="" isLoading userInitial={userInitial} />}
 
                 {/* Resume ready card */}
                 {phase === 'done' && resumeHtml && (
-                  <div className="flex justify-start mb-4">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mr-3 mt-0.5"
-                      style={{ background: 'linear-gradient(135deg,#34d399,#06b6d4)' }}>
-                      <Sparkles className="w-4 h-4 text-black" />
+                  <div className="flex justify-start mb-4 items-end gap-2 sm:gap-3">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                      style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.12)' }}>
+                      <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white/70" />
                     </div>
-                    <div className="rounded-2xl rounded-tl-sm p-4 flex flex-col gap-3"
-                      style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', minWidth: 260 }}>
+                    <div className="rounded-2xl rounded-bl-sm p-4 flex flex-col gap-3"
+                      style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.09)', boxShadow: '0 4px 24px rgba(0,0,0,0.2)', minWidth: 220 }}>
                       <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-emerald-400" />
-                        <span className="text-white text-sm font-semibold">Resume Ready</span>
+                        <FileText className="w-4 h-4 text-white/60" />
+                        <span className="text-white/90 text-sm font-semibold">Resume Ready</span>
                         <span className="text-white/30 text-xs">· ATS Optimized</span>
                       </div>
                       <div className="flex gap-2">
                         <button onClick={() => window.open(URL.createObjectURL(new Blob([resumeHtml], { type: 'text/html' })), '_blank')}
-                          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-white text-xs font-medium hover:bg-white/12"
-                          style={{ border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.06)' }}>
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-white/80 text-xs font-medium transition-all hover:bg-white/10"
+                          style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)' }}>
                           <Eye className="w-3.5 h-3.5" /> Preview
                         </button>
                         <button onClick={() => {
@@ -378,12 +404,12 @@ export default function Dashboard() {
                           a.download = `${userData?.name?.replace(/\s+/g, '_') || 'resume'}.html`;
                           a.click();
                         }}
-                          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-black text-xs font-semibold hover:opacity-90"
-                          style={{ background: 'linear-gradient(135deg,#34d399,#06b6d4)' }}>
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-white/90 text-xs font-semibold transition-all hover:bg-white/15"
+                          style={{ border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.1)' }}>
                           <Download className="w-3.5 h-3.5" /> Download
                         </button>
                       </div>
-                      <button onClick={handleRestart} className="text-white/30 hover:text-white/60 text-xs text-center transition-colors">
+                      <button onClick={handleRestart} className="text-white/25 hover:text-white/50 text-xs text-center transition-colors">
                         Build a new resume
                       </button>
                     </div>
@@ -392,7 +418,7 @@ export default function Dashboard() {
                 <div ref={bottomRef} />
               </div>
 
-              <div className="px-4 pb-6 flex-shrink-0">
+              <div className="px-3 sm:px-5 pb-4 sm:pb-6 flex-shrink-0">
                 {phase === 'done' ? (
                   <div className="text-center">
                     <button onClick={handleRestart} className="text-white/40 hover:text-white text-sm transition-colors">
