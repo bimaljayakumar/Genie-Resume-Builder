@@ -46,6 +46,22 @@ function detectRealProjects(extra, skills) {
   return hasProjectWord && hasTechSignal;
 }
 
+// ─── System prompt ───────────────────────────────────────────────────────────────────────
+const SYSTEM_PROMPT_BUILD = `You are a senior professional resume writer and ATS expert with 20 years of experience.
+
+Your responsibilities:
+- Build accurate, professional, ATS-optimized resumes from provided candidate data
+- Fix all grammar and spelling errors while preserving meaning
+- Rewrite weak sentences into strong, professional, impact-driven ones
+- NEVER invent, fabricate, or assume any information not explicitly provided
+- Return ONLY valid JSON — no markdown, no extra text, no explanations
+
+Anti-hallucination rules:
+- If a field has no data → return empty string "" or empty array []
+- Never guess company names, job titles, dates, skills, or achievements
+- Never add certifications or projects unless explicitly mentioned
+- The only creative freedom allowed is improving language quality of provided facts`;
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
@@ -138,28 +154,13 @@ export default async function handler(req, res) {
     return res.status(200).json({ html, resume });
 
   } catch (err) {
-    console.error('Build resume error:', err.message);
-    return res.status(500).json({ error: 'Failed to generate resume. Please try again.' });
+    console.error('Build resume error:', err.message, err.stack);
+    return res.status(500).json({ error: err.message || 'Failed to generate resume. Please try again.' });
   }
 }
 
-// ─── System prompt for resume builder — separate from chat ────────────────────
-const SYSTEM_PROMPT_BUILD = `You are a senior professional resume writer and ATS expert with 20 years of experience. 
 
-Your responsibilities:
-- Build accurate, professional, ATS-optimized resumes from provided candidate data
-- Fix all grammar and spelling errors while preserving meaning
-- Rewrite weak sentences into strong, professional, impact-driven ones
-- NEVER invent, fabricate, or assume any information not explicitly provided
-- Return ONLY valid JSON — no markdown, no extra text, no explanations
-
-Anti-hallucination rules:
-- If a field has no data → return empty string "" or empty array []
-- Never guess company names, job titles, dates, skills, or achievements
-- Never add certifications or projects unless explicitly mentioned
-- The only creative freedom allowed is improving language quality of provided facts`;
-
-// ─── Build the prompt — instructions separated from JSON template ─────────────
+// ─── Build the prompt ──────────────────────────────────────────────────────────────────────
 function buildPrompt(safe, isFresher, hasRealProjects) {
   const summaryRule = isFresher
     ? `SUMMARY RULE (fresher): Write exactly 3 sentences.
