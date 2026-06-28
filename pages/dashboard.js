@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/router';
-import { Send, Sparkles, FileText, Download, Eye, LogOut, ChevronDown, History, X, Clock, Trash2 } from 'lucide-react';
+import { Send, Sparkles, FileText, Download, Eye, LogOut, ChevronDown, Loader2, History, X, Clock, Trash2 } from 'lucide-react';
 
 const FONT = '"Helvetica Now Var", Helvetica, Arial, sans-serif';
 
