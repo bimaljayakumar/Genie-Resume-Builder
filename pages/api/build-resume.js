@@ -1,77 +1,45 @@
 import Groq from 'groq-sdk';
-import { execFile } from 'child_process';
-import path from 'path';
-
-export const config = {
-  api: {
-    responseLimit: '10mb',
-  },
-};
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-// ─── Sanitize input ────────────────────────────────────────────────────────────
+export const config = { api: { responseLimit: '10mb' } };
+
 function sanitize(val) {
   if (!val || typeof val !== 'string') return '';
-  return val
-    .replace(/[\u0000-\u001F\u007F]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 2000);
+  return val.replace(/[\u0000-\u001F\u007F]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 2000);
 }
 
 function dedupeSkills(str) {
   if (!str) return '';
   const seen = new Set();
-  return str
-    .split(/[,;]+/)
-    .map(s => s.trim())
-    .filter(s => s.length > 0)
-    .filter(s => {
-      const key = s.toLowerCase();
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    })
+  return str.split(/[,;]+/).map(s => s.trim()).filter(s => s.length > 0)
+    .filter(s => { const k = s.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; })
     .join(', ');
 }
 
 function detectFresher(experience) {
   if (!experience) return true;
-  return /^(fresher|no exp|no work|no experience|0 year|zero exp|intern only|fresh grad|n\/a|none|-)$/i.test(
-    experience.trim()
-  ) || experience.trim().length < 10;
+  return /^(fresher|no exp|no work|no experience|0 year|zero exp|intern only|fresh grad|n\/a|none|-)$/i.test(experience.trim()) || experience.trim().length < 10;
 }
 
 function detectRealProjects(extra, skills) {
   const text = `${extra} ${skills}`.toLowerCase();
-  const hasProjectWord = /\bproject\b|\bbuilt\b|\bdeveloped\b|\bcreated\b|\bdeployed\b/.test(text);
-  const hasTechSignal  = /github\.com|\.com\/|html|css|react|node|python|java|flutter|android|ios|api|app|website|system/.test(text);
-  return hasProjectWord && hasTechSignal;
+  return /\bproject\b|\bbuilt\b|\bdeveloped\b|\bcreated\b|\bdeployed\b/.test(text) &&
+    /github\.com|html|css|react|node|python|java|flutter|android|ios|api|app|website|system/.test(text);
 }
 
-const SYSTEM_PROMPT_BUILD = `You are a senior professional resume writer and ATS expert with 20 years of experience.
-
-Your responsibilities:
+const SYSTEM_PROMPT = `You are a senior professional resume writer and ATS expert.
 - Build accurate, professional, ATS-optimized resumes from provided candidate data
-- Fix all grammar and spelling errors while preserving meaning
-- Rewrite weak sentences into strong, professional, impact-driven ones
-- NEVER invent, fabricate, or assume any information not explicitly provided
-- Return ONLY valid JSON — no markdown, no extra text, no explanations
-
-Anti-hallucination rules:
-- If a field has no data → return empty string "" or empty array []
-- Never guess company names, job titles, dates, skills, or achievements
-- Never add certifications or projects unless explicitly mentioned
-- The only creative freedom allowed is improving language quality of provided facts`;
+- Fix grammar and spelling errors while preserving meaning
+- NEVER invent or fabricate any information not explicitly provided
+- Return ONLY valid JSON — no markdown, no extra text`;
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
   const { userData } = req.body;
-  if (!userData?.name || !userData?.role) {
+  if (!userData?.name || !userData?.role)
     return res.status(400).json({ error: 'Missing required fields: name and role' });
-  }
 
   const safe = {
     name:       sanitize(userData.name),
@@ -96,7 +64,7 @@ export default async function handler(req, res) {
       temperature: 0.2,
       max_tokens: 1800,
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT_BUILD },
+        { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user',   content: buildPrompt(safe, isFresher, hasRealProjects) },
       ],
     });
@@ -104,171 +72,280 @@ export default async function handler(req, res) {
     const raw     = completion.choices[0]?.message?.content?.trim() || '';
     const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 
-    try {
-      resume = JSON.parse(cleaned);
-    } catch {
-      console.error('Resume JSON parse failed. Raw:', raw.slice(0, 400));
-      return res.status(500).json({ error: 'AI returned an invalid format. Please try again.' });
-    }
+    try { resume = JSON.parse(cleaned); }
+    catch { return res.status(500).json({ error: 'AI returned invalid format. Please try again.' }); }
+
   } catch (err) {
-    console.error('Groq error:', err.message);
-    if (err.status === 429 || err.message?.includes('rate_limit_exceeded') || err.message?.includes('Rate limit')) {
+    if (err.status === 429 || err.message?.includes('rate_limit_exceeded') || err.message?.includes('Rate limit'))
       return res.status(429).json({ error: 'AI rate limit reached. Please wait a few minutes and try again.' });
-    }
-    return res.status(500).json({ error: err.message || 'Failed to generate resume. Please try again.' });
+    return res.status(500).json({ error: err.message || 'Failed to generate resume.' });
   }
 
-  // ── POST-PARSE SAFETY ─────────────────────────────────────────────────────
+  // Safety enforcement
   if (!hasRealProjects) resume.projects = [];
   if (isFresher)        resume.experience = [];
-
-  if (resume.skills?.technical) {
-    resume.skills.technical = [...new Set(resume.skills.technical.map(s => s.trim()))].filter(Boolean);
-  }
-  if (resume.skills?.tools) {
-    resume.skills.tools = [...new Set(resume.skills.tools.map(s => s.trim()))].filter(Boolean);
-  }
-  if (resume.interests) {
-    resume.interests = [...new Set(resume.interests.map(s => s.trim()))].filter(Boolean);
-  }
+  if (resume.skills?.technical) resume.skills.technical = [...new Set(resume.skills.technical.map(s => s.trim()))].filter(Boolean);
+  if (resume.skills?.tools)     resume.skills.tools     = [...new Set(resume.skills.tools.map(s => s.trim()))].filter(Boolean);
+  if (resume.interests)         resume.interests        = [...new Set(resume.interests.map(s => s.trim()))].filter(Boolean);
   if (!Array.isArray(resume.education)) resume.education = [];
-  if (resume.certifications) {
-    resume.certifications = resume.certifications.filter(c => c && c.trim().length > 3);
-  }
-  if (resume.achievements) {
-    resume.achievements = resume.achievements.filter(a => a && a.trim().length > 3);
-  }
+  if (resume.certifications) resume.certifications = resume.certifications.filter(c => c?.trim().length > 3);
+  if (resume.achievements)   resume.achievements   = resume.achievements.filter(a => a?.trim().length > 3);
   if (!resume.languages?.length) resume.languages = ['English'];
 
-  // ── RENDER PDF via Python/RenderCV ────────────────────────────────────────
-  try {
-    const pdfBytes = await renderWithRenderCV(resume);
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${resume.name.replace(/\s+/g, '_')}_Resume.pdf"`);
-    return res.status(200).send(Buffer.from(pdfBytes));
-  } catch (err) {
-    console.error('RenderCV error:', err.message);
-    return res.status(500).json({ error: 'Failed to render PDF: ' + err.message });
-  }
+  const html = buildResumeHTML(resume);
+  return res.status(200).json({ html, resume });
 }
 
-// ─── Call Python render script ────────────────────────────────────────────────
-function renderWithRenderCV(resumeData) {
-  return new Promise((resolve, reject) => {
-    const scriptPath = path.join(process.cwd(), 'scripts', 'render_resume.py');
-    const input      = JSON.stringify(resumeData);
-
-    const child = execFile(
-      'python',
-      [scriptPath],
-      { maxBuffer: 10 * 1024 * 1024, timeout: 60000, encoding: 'buffer' },
-      (error, stdout, stderr) => {
-        if (error) {
-          const msg = stderr?.toString() || error.message;
-          return reject(new Error(msg.slice(0, 500)));
-        }
-        if (!stdout || stdout.length === 0) {
-          return reject(new Error('Python script returned empty output. ' + (stderr?.toString() || '')));
-        }
-        resolve(stdout);
-      }
-    );
-
-    child.stdin.write(input);
-    child.stdin.end();
-  });
-}
-
-// ─── Build the AI prompt ──────────────────────────────────────────────────────
 function buildPrompt(safe, isFresher, hasRealProjects) {
   const summaryRule = isFresher
-    ? `SUMMARY RULE (fresher): Write exactly 3 sentences.
-  Sentence 1: State their degree/field of study and the institution.
-  Sentence 2: Highlight their top 2-3 technical skills and any hands-on work.
-  Sentence 3: Express their motivation and the specific value they bring to the target role.
-  NEVER say "0 years", "no experience", or anything about lack of experience.`
-    : `SUMMARY RULE (experienced): Write exactly 3 sentences.
-  Sentence 1: State their professional role and primary domain of expertise.
-  Sentence 2: Highlight 2-3 key technical skills or notable achievements.
-  Sentence 3: State the value and impact they bring to employers.
-  NEVER mention specific year counts.`;
+    ? `SUMMARY (fresher): 3 sentences. S1: degree/field + institution. S2: top 2-3 skills + hands-on work. S3: motivation + value for target role. NEVER mention lack of experience.`
+    : `SUMMARY (experienced): 3 sentences. S1: role + domain. S2: key skills/achievements. S3: value to employers.`;
 
-  const experienceRule = isFresher
-    ? `EXPERIENCE RULE: Candidate is a fresher. Set "experience" to empty array [].`
-    : `EXPERIENCE RULE: For each job write 3 strong bullet points starting with action verbs. Include measurable impact where mentioned.`;
+  const expRule = isFresher
+    ? `EXPERIENCE: fresher — set "experience" to [].`
+    : `EXPERIENCE: 3 bullet points per job starting with action verbs. Include measurable impact if mentioned.`;
 
-  const projectsRule = hasRealProjects
-    ? `PROJECTS RULE: Extract project name, tech stack, and description. Improve language but keep facts.`
-    : `PROJECTS RULE: Set "projects" to empty array []. Do NOT invent projects.`;
+  const projRule = hasRealProjects
+    ? `PROJECTS: extract name, tech, description from data. Improve language, keep facts.`
+    : `PROJECTS: set "projects" to []. Do NOT invent.`;
 
-  return `Build a professional ATS-optimized resume from this verified candidate data.
+  return `Build a professional ATS resume from this data.
 
-CANDIDATE DATA:
-Name:       ${safe.name}
-Email:      ${safe.email || 'Not provided'}
-Phone:      ${safe.phone || 'Not provided'}
-Location:   ${safe.location || 'Not provided'}
+Name: ${safe.name}
+Email: ${safe.email || 'Not provided'}
+Phone: ${safe.phone || 'Not provided'}
+Location: ${safe.location || 'Not provided'}
 Target Role: ${safe.role}
-Education:  ${safe.education || 'Not provided'}
+Education: ${safe.education || 'Not provided'}
 Experience: ${safe.experience || 'fresher'}
-Skills:     ${safe.skills || 'Not provided'}
-Interests:  ${safe.interests || 'Not provided'}
-Extra Info: ${safe.extra || 'None'}
+Skills: ${safe.skills || 'Not provided'}
+Interests: ${safe.interests || 'Not provided'}
+Extra: ${safe.extra || 'None'}
 
 RULES:
-
 ${summaryRule}
+EDUCATION: separate object per level. 10th→"Secondary School Certificate (SSC)", 12th→"Higher Secondary Certificate (HSC)". Most recent first. Never drop any level.
+${expRule}
+${projRule}
+SKILLS: technical + tools only. No soft skills. No duplicates.
+HALLUCINATION: "Not provided" fields → empty string or [].
 
-EDUCATION RULE:
-  Parse every education level and create a SEPARATE object for each.
-  - "10th" or "SSC" → degree: "Secondary School Certificate (SSC)"
-  - "12th" or "HSC" or "Plus Two" → degree: "Higher Secondary Certificate (HSC)"
-  - Use full degree name for college (BCA, BSc, BTech, MBA, etc.)
-  - Order: most recent first
-  - NEVER drop any education level mentioned
-
-${experienceRule}
-
-${projectsRule}
-
-SKILLS RULE:
-  - Only technical skills and tools/platforms
-  - NO soft skills
-  - Remove duplicates
-
-HALLUCINATION RULE:
-  - If any field says "Not provided" → return empty string or empty array
-  - Never invent anything.
-
-Return ONLY this exact JSON (no other text):
+Return ONLY this JSON:
 {
-  "name": "Properly Capitalized Full Name",
-  "title": "Target Job Title",
-  "email": "email or empty string",
-  "phone": "phone or empty string",
-  "location": "City, Country or empty string",
-  "linkedin": "linkedin url only if explicitly provided else empty string",
-  "github": "github url only if explicitly provided else empty string",
-  "website": "website url only if explicitly provided else empty string",
-  "summary": "Exactly 3 sentences",
-  "experience": [],
-  "education": [
-    {
-      "degree": "Full degree name",
-      "institution": "Full institution name",
-      "location": "City, Country or empty string",
-      "year": "Year or duration (e.g. 2020-2021)",
-      "gpa": "Grade or GPA only if mentioned, else empty string"
-    }
-  ],
-  "skills": {
-    "technical": ["skill1", "skill2"],
-    "tools": ["tool1", "tool2"]
-  },
-  "interests": ["interest1"],
-  "projects": [],
-  "certifications": [],
-  "achievements": [],
-  "languages": ["English"]
+  "name": "", "title": "", "email": "", "phone": "", "location": "",
+  "linkedin": "", "github": "", "website": "",
+  "summary": "",
+  "experience": [{"company":"","role":"","duration":"","location":"","points":[]}],
+  "education": [{"degree":"","institution":"","location":"","year":"","gpa":""}],
+  "skills": {"technical": [], "tools": []},
+  "interests": [], "projects": [{"name":"","tech":"","description":"","link":""}],
+  "certifications": [], "achievements": [], "languages": ["English"]
 }`;
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function buildResumeHTML(r) {
+  const allSkills = [
+    ...(r.skills?.technical || []),
+    ...(r.skills?.tools || []),
+  ];
+
+  const contacts = [
+    r.email    && `<span>${esc(r.email)}</span>`,
+    r.phone    && `<span>${esc(r.phone)}</span>`,
+    r.location && `<span>${esc(r.location)}</span>`,
+    r.linkedin && `<span>${esc(r.linkedin)}</span>`,
+    r.github   && `<span>${esc(r.github)}</span>`,
+    r.website  && `<span>${esc(r.website)}</span>`,
+  ].filter(Boolean).join('<span class="sep"> | </span>');
+
+  const section = (title, content) => content ? `
+    <div class="sec">
+      <div class="sec-title">${title}</div>
+      <div class="sec-line"></div>
+      ${content}
+    </div>` : '';
+
+  // Summary
+  const summaryHtml = r.summary ? `<p class="summary">${esc(r.summary)}</p>` : '';
+
+  // Education
+  const educationHtml = r.education?.length ? r.education.map(e => `
+    <div class="entry">
+      <div class="entry-left">
+        <div class="entry-date">${esc(e.year)}</div>
+        ${e.location ? `<div class="entry-loc">${esc(e.location)}</div>` : ''}
+      </div>
+      <div class="entry-right">
+        <div class="entry-head"><span class="entry-bold">${esc(e.institution)}</span></div>
+        <div class="entry-sub">${esc(e.degree)}</div>
+        ${e.gpa ? `<div class="entry-sub">Grade: ${esc(e.gpa)}</div>` : ''}
+      </div>
+    </div>`).join('') : '';
+
+  // Experience
+  const experienceHtml = r.experience?.length ? r.experience.map(e => `
+    <div class="entry">
+      <div class="entry-left">
+        <div class="entry-date">${esc(e.duration)}</div>
+        ${e.location ? `<div class="entry-loc">${esc(e.location)}</div>` : ''}
+      </div>
+      <div class="entry-right">
+        <div class="entry-head"><span class="entry-bold">${esc(e.company)}</span><span class="entry-role">, ${esc(e.role)}</span></div>
+        ${(e.points||[]).length ? `<ul class="bullets">${e.points.map(p=>`<li>${esc(p)}</li>`).join('')}</ul>` : ''}
+      </div>
+    </div>`).join('') : '';
+
+  // Projects
+  const projectsHtml = r.projects?.length ? r.projects.map(p => `
+    <div class="entry">
+      <div class="entry-left"></div>
+      <div class="entry-right">
+        <div class="entry-head">
+          <span class="entry-bold">${esc(p.name)}</span>
+          ${p.link ? `<span class="entry-link"> — ${esc(p.link)}</span>` : ''}
+        </div>
+        ${p.tech ? `<div class="entry-sub">${esc(p.tech)}</div>` : ''}
+        ${p.description ? `<p class="entry-desc">${esc(p.description)}</p>` : ''}
+      </div>
+    </div>`).join('') : '';
+
+  // Skills
+  const skillsHtml = allSkills.length ? `
+    <div class="skills-wrap">
+      ${allSkills.map(s => `<span class="skill-tag">${esc(s)}</span>`).join('')}
+    </div>` : '';
+
+  // One-line sections helper
+  const listHtml = arr => arr?.length
+    ? `<p class="oneline">${arr.map(esc).join(' &nbsp;•&nbsp; ')}</p>`
+    : '';
+
+  // Certifications + Achievements side by side
+  const certsAchv = (r.certifications?.length || r.achievements?.length) ? `
+    <div class="two-col">
+      ${r.certifications?.length ? `<div class="two-col-item">
+        <div class="sec"><div class="sec-title">Certifications</div><div class="sec-line"></div>
+          <ul class="plain-list">${r.certifications.map(c=>`<li>${esc(c)}</li>`).join('')}</ul>
+        </div></div>` : ''}
+      ${r.achievements?.length ? `<div class="two-col-item">
+        <div class="sec"><div class="sec-title">Achievements</div><div class="sec-line"></div>
+          <ul class="plain-list">${r.achievements.map(a=>`<li>${esc(a)}</li>`).join('')}</ul>
+        </div></div>` : ''}
+    </div>` : '';
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap');
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:210mm; background:#fff; }
+  body {
+    font-family: 'Source Sans 3', 'Arial', sans-serif;
+    font-size: 10pt;
+    color: #1a1a1a;
+    line-height: 1.5;
+  }
+  #page { width:210mm; min-height:297mm; padding: 12mm 16mm 14mm 16mm; }
+
+  /* Header */
+  .hdr { text-align:center; margin-bottom: 10px; }
+  .hdr-name { font-size:22pt; font-weight:700; color:#1a1a1a; letter-spacing:0.5px; }
+  .hdr-title { font-size:10.5pt; color:#444; margin-top:2px; }
+  .hdr-contact { margin-top:6px; font-size:9.5pt; color:#333; }
+  .hdr-contact .sep { color:#aaa; margin:0 2px; }
+
+  /* Section */
+  .sec { margin-bottom:12px; }
+  .sec-title {
+    font-size:10.5pt; font-weight:700; text-transform:uppercase;
+    letter-spacing:1.2px; color:#004f90; margin-bottom:2px;
+  }
+  .sec-line { height:1px; background:#004f90; margin-bottom:7px; }
+
+  /* Summary */
+  .summary { font-size:10pt; color:#222; line-height:1.65; text-align:justify; }
+
+  /* Entry layout */
+  .entry { display:flex; gap:10px; margin-bottom:10px; }
+  .entry:last-child { margin-bottom:0; }
+  .entry-left { min-width:82px; max-width:82px; flex-shrink:0; }
+  .entry-date { font-size:9.5pt; color:#444; line-height:1.4; }
+  .entry-loc  { font-size:9pt; color:#777; margin-top:1px; }
+  .entry-right { flex:1; }
+  .entry-head { font-size:10.5pt; color:#1a1a1a; line-height:1.4; }
+  .entry-bold { font-weight:700; }
+  .entry-role { font-style:italic; color:#444; }
+  .entry-link { font-size:9pt; color:#555; }
+  .entry-sub  { font-size:9.5pt; color:#555; margin-top:1px; }
+  .entry-desc { font-size:9.5pt; color:#333; margin-top:3px; line-height:1.6; text-align:justify; }
+  .bullets { padding-left:14px; margin-top:4px; list-style:disc; }
+  .bullets li { font-size:9.5pt; color:#222; margin-bottom:2px; line-height:1.5; }
+
+  /* Skills */
+  .skills-wrap { display:flex; flex-wrap:wrap; gap:4px 6px; }
+  .skill-tag {
+    font-size:9.5pt; color:#1a1a1a; padding:2px 8px;
+    border:0.75px solid #ccc; border-radius:3px;
+    background:#f7f7f7;
+  }
+
+  /* Interests / Languages inline */
+  .oneline { font-size:10pt; color:#222; line-height:1.6; }
+
+  /* Plain list */
+  .plain-list { list-style:none; padding:0; }
+  .plain-list li { font-size:10pt; color:#1a1a1a; margin-bottom:2px; padding-left:10px; position:relative; }
+  .plain-list li::before { content:"•"; position:absolute; left:0; color:#004f90; }
+
+  /* Two column */
+  .two-col { display:flex; gap:20px; }
+  .two-col-item { flex:1; }
+
+  /* Declaration */
+  .declaration { font-size:9.5pt; color:#444; line-height:1.65; text-align:justify; }
+  .decl-sig { margin-top:10px; font-size:10pt; font-weight:700; }
+  .decl-place { font-size:9.5pt; color:#666; }
+
+  @media print {
+    html, body { width:210mm; }
+    #page { min-height:297mm; }
+  }
+</style>
+</head>
+<body>
+<div id="page">
+
+  <div class="hdr">
+    <div class="hdr-name">${esc(r.name)}</div>
+    ${r.title ? `<div class="hdr-title">${esc(r.title)}</div>` : ''}
+    ${contacts ? `<div class="hdr-contact">${contacts}</div>` : ''}
+  </div>
+
+  ${section('Profile', summaryHtml)}
+  ${section('Education', educationHtml)}
+  ${section('Work Experience', experienceHtml)}
+  ${section('Projects', projectsHtml)}
+  ${section('Skills', skillsHtml)}
+  ${r.interests?.length ? section('Interests', listHtml(r.interests)) : ''}
+  ${certsAchv}
+  ${r.languages?.length ? section('Languages', listHtml(r.languages)) : ''}
+
+  <div class="sec">
+    <div class="sec-title">Declaration</div>
+    <div class="sec-line"></div>
+    <p class="declaration">I hereby declare that all the information provided above is true and correct to the best of my knowledge and belief.</p>
+    <div class="decl-sig">${esc(r.name)}</div>
+    ${r.location ? `<div class="decl-place">${esc(r.location)}</div>` : ''}
+  </div>
+
+</div>
+</body>
+</html>`;
 }

@@ -184,22 +184,35 @@ function UserMenu({ session, onHistoryOpen }) {
   );
 }
 
-function DownloadButton({ pdfUrl, userName }) {
-  function handleDownload() {
-    if (!pdfUrl) return;
-    const a = document.createElement('a');
-    a.href = pdfUrl;
-    a.download = `${(userName || 'resume').replace(/\s+/g, '_')}_Resume.pdf`;
-    a.click();
+function DownloadButton({ resumeHtml, userName }) {
+  const [downloading, setDownloading] = useState(false);
+
+  async function handleDownload() {
+    setDownloading(true);
+    try {
+      const res = await fetch('/api/generate-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ html: resumeHtml, name: userName }),
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Server error'); }
+      const blob = await res.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${(userName || 'resume').replace(/\s+/g, '_')}_Resume.pdf`;
+      a.click();
+    } catch (err) {
+      alert('PDF failed: ' + err.message);
+    } finally {
+      setDownloading(false);
+    }
   }
 
   return (
-    <button
-      onClick={handleDownload}
-      disabled={!pdfUrl}
+    <button onClick={handleDownload} disabled={downloading}
       className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-white/90 text-xs font-semibold transition-all hover:bg-white/15 disabled:opacity-50"
       style={{ border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.1)' }}>
-      <Download className="w-3.5 h-3.5" /> Download PDF
+      {downloading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Generating...</> : <><Download className="w-3.5 h-3.5" /> Download PDF</>}
     </button>
   );
 }
@@ -210,12 +223,13 @@ export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  const [messages, setMessages] = useState([]);       // { role: 'user'|'ai', text }
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);       // AI is thinking
-  const [phase, setPhase] = useState('chat');          // 'chat' | 'generating' | 'done'
-  const [resumePdfUrl, setResumePdfUrl] = useState(null);  // blob URL for PDF
-  const [userData, setUserData] = useState(null);      // final confirmed data
+  const [loading, setLoading] = useState(false);
+  const [phase, setPhase] = useState('chat');
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [resumeHtml, setResumeHtml] = useState(null);
+  const [userData, setUserData] = useState(null);
   const [history, setHistory] = useState([]);
   const [historyOpen, setHistoryOpen] = useState(false);
 
@@ -277,21 +291,17 @@ export default function Dashboard() {
 
   async function generateResume(data) {
     try {
-      const res = await fetch('/api/build-resume', {
+      const res    = await fetch('/api/build-resume', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userData: data }),
       });
-
-      if (res.ok && res.headers.get('content-type')?.includes('application/pdf')) {
-        const blob = await res.blob();
-        const url  = URL.createObjectURL(blob);
-        if (resumePdfUrl) URL.revokeObjectURL(resumePdfUrl);
-        setResumePdfUrl(url);
+      const result = await res.json();
+      if (result.html) {
+        setResumeHtml(result.html);
         setPhase('done');
-        // Save to history (store blob URL — only valid this session)
         const key   = `genie_history_${session?.user?.email}`;
-        const entry = { id: Date.now(), ts: Date.now(), name: data.name, role: data.role };
+        const entry = { id: Date.now(), ts: Date.now(), name: data.name, role: data.role, html: result.html };
         const h     = [entry, ...history].slice(0, 20);
         setHistory(h);
         localStorage.setItem(key, JSON.stringify(h));
@@ -301,7 +311,6 @@ export default function Dashboard() {
           chatHistory.current.push({ role: 'ai', text: msg });
         }, 500);
       } else {
-        const result = await res.json().catch(() => ({}));
         setPhase('chat');
         const msg = res.status === 429
           ? '⏳ AI rate limit reached. Please wait a few minutes and try again.'
@@ -315,10 +324,9 @@ export default function Dashboard() {
   }
 
   function handleRestart() {
-    if (resumePdfUrl) URL.revokeObjectURL(resumePdfUrl);
     setMessages([]);
     setPhase('chat');
-    setResumePdfUrl(null);
+    setResumeHtml(null);
     setUserData(null);
     setInput('');
     chatHistory.current = [];
@@ -413,7 +421,7 @@ export default function Dashboard() {
                 {loading && <Bubble role="ai" text="" isLoading userInitial={userInitial} />}
 
                 {/* Resume ready card */}
-                {phase === 'done' && resumePdfUrl && (
+                {phase === 'done' && resumeHtml && (
                   <div className="flex justify-start mb-4 items-end gap-2 sm:gap-3">
                     <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center flex-shrink-0"
                       style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.12)' }}>
@@ -424,19 +432,17 @@ export default function Dashboard() {
                       <div className="flex items-center gap-2">
                         <FileText className="w-4 h-4 text-white/60" />
                         <span className="text-white/90 text-sm font-semibold">Resume Ready</span>
-                        <span className="text-white/30 text-xs">· ATS Optimized</span>
+                        <span className="text-white/30 text-xs">&middot; ATS Optimized</span>
                       </div>
                       <div className="flex gap-2">
-                        <a href={resumePdfUrl} target="_blank" rel="noreferrer"
+                        <button onClick={() => setPreviewOpen(true)}
                           className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-white/80 text-xs font-medium transition-all hover:bg-white/10"
                           style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)' }}>
                           <Eye className="w-3.5 h-3.5" /> Preview
-                        </a>
-                        <DownloadButton pdfUrl={resumePdfUrl} userName={userData?.name} />
+                        </button>
+                        <DownloadButton resumeHtml={resumeHtml} userName={userData?.name} />
                       </div>
-                      <button onClick={handleRestart} className="text-white/25 hover:text-white/50 text-xs text-center transition-colors">
-                        Build a new resume
-                      </button>
+                      <button onClick={handleRestart} className="text-white/25 hover:text-white/50 text-xs text-center transition-colors">Build a new resume</button>
                     </div>
                   </div>
                 )}
@@ -459,14 +465,33 @@ export default function Dashboard() {
 
       </div>
 
+      {/* RESUME PREVIEW MODAL */}
+      {previewOpen && resumeHtml && (
+        <div className="fixed inset-0 z-50 flex flex-col" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}>
+          <div className="flex items-center justify-between px-5 py-3 flex-shrink-0" style={{ background: 'rgba(0,0,0,0.6)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            <span className="text-white font-semibold text-sm">Resume Preview</span>
+            <div className="flex items-center gap-3">
+              <DownloadButton resumeHtml={resumeHtml} userName={userData?.name} />
+              <button onClick={() => setPreviewOpen(false)} className="text-white/50 hover:text-white transition-colors"><X className="w-5 h-5" /></button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-auto flex items-start justify-center p-4">
+            <iframe srcDoc={resumeHtml}
+              style={{ width: '210mm', minHeight: '297mm', border: 'none', boxShadow: '0 8px 48px rgba(0,0,0,0.6)', background: '#fff', borderRadius: '2px' }}
+              title="Resume Preview" />
+          </div>
+        </div>
+      )}
+
       <HistoryPanel
         open={historyOpen}
         onClose={() => setHistoryOpen(false)}
         history={history}
         onSelect={item => {
+          setResumeHtml(item.html);
           setPhase('done');
           setUserData({ name: item.name, role: item.role });
-          setMessages([{ role: 'ai', text: `Loaded history entry for **${item.role}**. Note: to get the PDF again, please rebuild the resume.` }]);
+          setMessages([{ role: 'ai', text: `Here's the resume for **${item.role}** — loaded from history.` }]);
           chatHistory.current = [];
         }}
         onClear={() => { const key = `genie_history_${session?.user?.email}`; setHistory([]); localStorage.removeItem(key); }}
