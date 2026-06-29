@@ -23,7 +23,7 @@ export const ShowIconButton = ({
 
   return (
     <IconButton onClick={onClick} tooltipText={tooltipText}>
-      <Icon className="h-6 w-6 text-white/60 hover:text-emerald-400 transition-colors" aria-hidden="true" />
+      <Icon className="h-6 w-6 text-white/60 group-hover:text-emerald-400 transition-colors" aria-hidden="true" />
       <span className="sr-only">{tooltipText}</span>
     </IconButton>
   );
@@ -49,7 +49,7 @@ export const MoveIconButton = ({
       tooltipText={tooltipText}
       size={size}
     >
-      <Icon className={`${sizeClassName} text-white/60 hover:text-emerald-400 transition-colors`} aria-hidden="true" />
+      <Icon className={`${sizeClassName} text-white/60 group-hover:text-emerald-400 transition-colors`} aria-hidden="true" />
       <span className="sr-only">{tooltipText}</span>
     </IconButton>
   );
@@ -64,7 +64,7 @@ export const DeleteIconButton = ({
 }) => {
   return (
     <IconButton onClick={onClick} tooltipText={tooltipText} size="small">
-      <TrashIcon className="h-4 w-4 text-white/60 hover:text-red-400 transition-colors" aria-hidden="true" />
+      <TrashIcon className="h-4 w-4 text-white/60 group-hover:text-red-400 transition-colors" aria-hidden="true" />
       <span className="sr-only">{tooltipText}</span>
     </IconButton>
   );
@@ -90,7 +90,7 @@ export const BulletListIconButton = ({
     >
       <ListBulletIcon
         className={`h-4 w-4 ${
-          showBulletPoints ? "text-emerald-400" : "text-white/60"
+          showBulletPoints ? "text-emerald-400" : "text-white/60 group-hover:text-emerald-400 transition-colors"
         }`}
         aria-hidden="true"
       />
