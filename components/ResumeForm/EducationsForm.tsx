@@ -53,7 +53,7 @@ export const EducationsForm = () => {
               label="School"
               labelClassName="col-span-4"
               name="school"
-              placeholder="Cornell University"
+              placeholder="Cochin University of Science and Technology (CUSAT)"
               value={school}
               onChange={handleEducationChange}
             />
@@ -61,7 +61,7 @@ export const EducationsForm = () => {
               label="Date"
               labelClassName="col-span-2"
               name="date"
-              placeholder="May 2018"
+              placeholder="May 2023"
               value={date}
               onChange={handleEducationChange}
             />
@@ -69,7 +69,7 @@ export const EducationsForm = () => {
               label="Degree & Major"
               labelClassName="col-span-4"
               name="degree"
-              placeholder="Bachelor of Science in Computer Engineering"
+              placeholder="Bachelor of Technology in Computer Science"
               value={degree}
               onChange={handleEducationChange}
             />
@@ -77,7 +77,7 @@ export const EducationsForm = () => {
               label="GPA"
               labelClassName="col-span-2"
               name="gpa"
-              placeholder="3.81"
+              placeholder="8.5 / 10"
               value={gpa}
               onChange={handleEducationChange}
             />

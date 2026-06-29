@@ -8,7 +8,7 @@ import { mapBuildResumeToOpenResume } from 'lib/redux/aiMapper';
 import { ResumeForm } from 'components/ResumeForm';
 import { Resume } from 'components/Resume';
 
-const FONT = '"Helvetica Now Var", Helvetica, Arial, sans-serif';
+const FONT = 'Inter, system-ui, sans-serif';
 
 const GLASS = {
   background: 'rgba(255,255,255,0.06)',
