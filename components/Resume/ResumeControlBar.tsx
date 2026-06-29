@@ -34,9 +34,9 @@ const ResumeControlBar = ({
   }, [update, document]);
 
   return (
-    <div className="sticky bottom-0 left-0 right-0 flex h-[var(--resume-control-bar-height)] items-center justify-center px-[var(--resume-padding)] text-gray-600 lg:justify-between">
+    <div className="sticky bottom-0 left-0 right-0 flex h-[var(--resume-control-bar-height)] items-center justify-center px-[var(--resume-padding)] text-white/90 lg:justify-between border-t border-white/10 bg-black/30 backdrop-blur-md">
       <div className="flex items-center gap-2">
-        <MagnifyingGlassIcon className="h-5 w-5" aria-hidden="true" />
+        <MagnifyingGlassIcon className="h-5 w-5 text-emerald-400" aria-hidden="true" />
         <input
           type="range"
           min={0.5}
@@ -47,24 +47,25 @@ const ResumeControlBar = ({
             setScaleOnResize(false);
             setScale(Number(e.target.value));
           }}
+          className="accent-emerald-400"
         />
-        <div className="w-10">{`${Math.round(scale * 100)}%`}</div>
-        <label className="hidden items-center gap-1 lg:flex">
+        <div className="w-12 text-sm font-semibold text-white/95">{`${Math.round(scale * 100)}%`}</div>
+        <label className="hidden items-center gap-1.5 lg:flex cursor-pointer text-sm font-medium text-white/80 select-none">
           <input
             type="checkbox"
-            className="mt-0.5 h-4 w-4"
+            className="mt-0.5 h-4 w-4 rounded border-white/10 bg-white/5 text-emerald-500 focus:ring-emerald-400"
             checked={scaleOnResize}
             onChange={() => setScaleOnResize((prev) => !prev)}
           />
-          <span className="select-none">Autoscale</span>
+          <span>Autoscale</span>
         </label>
       </div>
       <a
-        className="ml-1 flex items-center gap-1 rounded-md border border-gray-300 px-3 py-0.5 hover:bg-gray-100 lg:ml-8"
+        className="ml-1 flex items-center gap-1.5 rounded-xl border border-white/10 px-3.5 py-1.5 text-xs font-semibold text-white/90 bg-white/5 hover:bg-white/10 active:scale-95 transition-all lg:ml-8"
         href={instance.url!}
         download={fileName}
       >
-        <ArrowDownTrayIcon className="h-4 w-4" />
+        <ArrowDownTrayIcon className="h-3.5 w-3.5 text-emerald-400" />
         <span className="whitespace-nowrap">Download Resume</span>
       </a>
     </div>
@@ -82,5 +83,5 @@ export const ResumeControlBarCSR = dynamic(
 );
 
 export const ResumeControlBarBorder = () => (
-  <div className="absolute bottom-[var(--resume-control-bar-height)] w-full border-t-2 bg-gray-50" />
+  <div className="absolute bottom-[var(--resume-control-bar-height)] w-full border-t border-white/10" />
 );

@@ -26,7 +26,7 @@ export const InputGroupWrapper = ({
   className?: string;
   children?: React.ReactNode;
 }) => (
-  <label className={`text-sm font-semibold tracking-wide text-white/75 ${className}`}>
+  <label className={`text-sm font-semibold tracking-wide text-white ${className}`}>
     {label}
     {children}
   </label>

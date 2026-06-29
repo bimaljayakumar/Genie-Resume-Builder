@@ -365,7 +365,7 @@ export default function Dashboard() {
               <ResumeForm />
             </div>
             {/* Live PDF Preview panel */}
-            <div className="lg:col-span-3 h-full overflow-y-auto bg-black/40 flex justify-center items-start py-8 scrollbar-thin">
+            <div className="lg:col-span-3 h-full overflow-hidden bg-black/40 flex flex-col justify-between">
               <Resume />
             </div>
           </div>
