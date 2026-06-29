@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/router';
-import { Send, Sparkles, LogOut, ChevronDown, Loader2, History, X, Clock, Trash2, Eye, FileText } from 'lucide-react';
+import { Send, Sparkles, LogOut, ChevronDown, Loader2, History, X, Clock, Trash2 } from 'lucide-react';
 import { useAppDispatch } from 'lib/redux/hooks';
 import { setResume } from 'lib/redux/resumeSlice';
 import { mapBuildResumeToOpenResume } from 'lib/redux/aiMapper';
@@ -203,7 +203,6 @@ export default function Dashboard() {
   const [history, setHistory] = useState([]);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
-  const [viewMode, setViewMode] = useState('edit');
 
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
@@ -345,24 +344,7 @@ export default function Dashboard() {
         {/* Navigation Bar */}
         <nav className="flex items-center justify-between px-5 sm:px-8 py-3.5 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           <span className="text-white text-xl font-bold tracking-wider">GENIE</span>
-          <div className="flex items-center gap-3">
-            {viewMode === 'edit' ? (
-              <button
-                onClick={() => setViewMode('preview')}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold text-white/95 hover:text-white bg-emerald-500 hover:bg-emerald-600 transition-all shadow-md active:scale-95"
-              >
-                <Eye className="w-3.5 h-3.5" />
-                lpreview
-              </button>
-            ) : (
-              <button
-                onClick={() => setViewMode('edit')}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold text-white bg-white/10 hover:bg-white/15 border border-white/10 transition-all active:scale-95"
-              >
-                <FileText className="w-3.5 h-3.5 text-emerald-400" />
-                Editor
-              </button>
-            )}
+          <div className="flex items-center gap-4">
             <button
               onClick={() => setAiOpen(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-white/90 hover:text-white transition-all"
@@ -377,17 +359,16 @@ export default function Dashboard() {
 
         {/* Builder Viewport */}
         <main className="flex-1 flex overflow-hidden min-h-0 bg-transparent">
-          {viewMode === 'edit' ? (
-            /* Full-screen Form Editor */
-            <div className="flex-1 h-full overflow-y-auto bg-black/10 backdrop-blur-[1px]">
+          <div className="flex-1 grid grid-cols-1 lg:grid-cols-6 h-full overflow-hidden">
+            {/* Form Editor panel */}
+            <div className="lg:col-span-3 h-full overflow-y-auto border-r border-white/5 bg-black/15 backdrop-blur-[2px]">
               <ResumeForm />
             </div>
-          ) : (
-            /* Full-screen PDF Preview */
-            <div className="flex-1 h-full overflow-hidden bg-black/45 flex flex-col justify-between items-center py-6 scrollbar-thin">
+            {/* Live PDF Preview panel */}
+            <div className="lg:col-span-3 h-full overflow-hidden bg-black/40 flex flex-col justify-between">
               <Resume />
             </div>
-          )}
+          </div>
         </main>
       </div>
 
