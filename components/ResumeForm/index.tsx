@@ -34,13 +34,13 @@ export const ResumeForm = () => {
   return (
     <div
       className={cx(
-        "flex justify-center scrollbar-thin scrollbar-track-transparent md:h-[calc(100vh-var(--top-nav-bar-height))] md:justify-center md:overflow-y-scroll w-full",
+        "flex justify-center scrollbar-thin scrollbar-track-transparent h-[calc(100vh-var(--top-nav-bar-height))] overflow-y-scroll w-full",
         isHover ? "scrollbar-thumb-white/20" : "scrollbar-thumb-white/10"
       )}
       onMouseOver={() => setIsHover(true)}
       onMouseLeave={() => setIsHover(false)}
     >
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-6xl p-[var(--resume-padding)] items-start">
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 w-full max-w-6xl p-4 sm:p-6 lg:p-[var(--resume-padding)] items-start">
         <ProfileForm />
         {formsOrder.map((form) => {
           const Component = formTypeToComponent[form];
