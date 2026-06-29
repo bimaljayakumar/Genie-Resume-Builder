@@ -1,7 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/router';
-import { Send, Sparkles, FileText, Download, Eye, LogOut, ChevronDown, Loader2, History, X, Clock, Trash2 } from 'lucide-react';
+import { Send, Sparkles, LogOut, ChevronDown, Loader2, History, X, Clock, Trash2 } from 'lucide-react';
+import { useAppDispatch } from 'lib/redux/hooks';
+import { setResume } from 'lib/redux/resumeSlice';
+import { mapBuildResumeToOpenResume } from 'lib/redux/aiMapper';
+import { ResumeForm } from 'components/ResumeForm';
+import { Resume } from 'components/Resume';
 
 const FONT = '"Helvetica Now Var", Helvetica, Arial, sans-serif';
 
@@ -36,7 +41,6 @@ function Bubble({ role, text, isLoading, userInitial }) {
   const isUser = role === 'user';
   return (
     <div className={`flex w-full mb-4 sm:mb-5 ${isUser ? 'justify-end' : 'justify-start'} items-end gap-2 sm:gap-3`}>
-
       {/* AI avatar */}
       {!isUser && (
         <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center flex-shrink-0"
@@ -184,58 +188,24 @@ function UserMenu({ session, onHistoryOpen }) {
   );
 }
 
-function DownloadButton({ resumeHtml, userName }) {
-  const [downloading, setDownloading] = useState(false);
-
-  async function handleDownload() {
-    setDownloading(true);
-    try {
-      const res = await fetch('/api/generate-pdf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ html: resumeHtml, name: userName }),
-      });
-      if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Server error'); }
-      const blob = await res.blob();
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `${(userName || 'resume').replace(/\s+/g, '_')}_Resume.pdf`;
-      a.click();
-    } catch (err) {
-      alert('PDF failed: ' + err.message);
-    } finally {
-      setDownloading(false);
-    }
-  }
-
-  return (
-    <button onClick={handleDownload} disabled={downloading}
-      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-white/90 text-xs font-semibold transition-all hover:bg-white/15 disabled:opacity-50"
-      style={{ border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.1)' }}>
-      {downloading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Generating...</> : <><Download className="w-3.5 h-3.5" /> Download PDF</>}
-    </button>
-  );
-}
-
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const dispatch = useAppDispatch();
 
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [phase, setPhase] = useState('chat');
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [resumeHtml, setResumeHtml] = useState(null);
   const [userData, setUserData] = useState(null);
   const [history, setHistory] = useState([]);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
 
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
-  // chatHistory holds the full conversation for the AI context
   const chatHistory = useRef([]);
 
   useEffect(() => { if (status === 'unauthenticated') router.replace('/signup'); }, [status]);
@@ -291,22 +261,27 @@ export default function Dashboard() {
 
   async function generateResume(data) {
     try {
-      const res    = await fetch('/api/build-resume', {
+      const res = await fetch('/api/build-resume', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userData: data }),
       });
       const result = await res.json();
-      if (result.html) {
-        setResumeHtml(result.html);
+      if (result.resume) {
+        // Map and load to Redux store
+        const mappedResume = mapBuildResumeToOpenResume(result.resume);
+        dispatch(setResume(mappedResume));
         setPhase('done');
-        const key   = `genie_history_${session?.user?.email}`;
-        const entry = { id: Date.now(), ts: Date.now(), name: data.name, role: data.role, html: result.html };
-        const h     = [entry, ...history].slice(0, 20);
+
+        // Save to history
+        const key = `genie_history_${session?.user?.email}`;
+        const entry = { id: Date.now(), ts: Date.now(), name: data.name, role: data.role, resume: mappedResume };
+        const h = [entry, ...history].slice(0, 20);
         setHistory(h);
         localStorage.setItem(key, JSON.stringify(h));
+
         setTimeout(() => {
-          const msg = `✅ Done! Your resume is ready, **${data.name}**. It's ATS-optimized and tailored for **${data.role}**. Preview or download it below.`;
+          const msg = `✅ Done! Your resume for **${data.role}** has been loaded into the builder. You can see it in the preview panel and edit the details directly in the forms!`;
           addMsg('ai', msg);
           chatHistory.current.push({ role: 'ai', text: msg });
         }, 500);
@@ -323,37 +298,26 @@ export default function Dashboard() {
     }
   }
 
-  function handleRestart() {
-    setMessages([]);
-    setPhase('chat');
-    setResumeHtml(null);
-    setUserData(null);
-    setInput('');
-    chatHistory.current = [];
-  }
-
   if (status === 'loading' || status === 'unauthenticated') {
     return <div className="min-h-screen flex items-center justify-center bg-black"><Loader2 className="w-6 h-6 text-white/30 animate-spin" /></div>;
   }
 
-  const firstName = session?.user?.name?.split(' ')[0] || 'there';
   const userInitial = session?.user?.name?.[0]?.toUpperCase() || 'U';
-  const hasChat = messages.length > 0;
   const inputDisabled = loading || phase === 'generating';
 
   const InputBox = (
-    <div className="rounded-2xl p-1" style={GLASS}>
-      <div className="rounded-[14px] flex items-end gap-2 px-4 py-2" style={{ background: 'rgba(0,0,0,0.2)' }}>
+    <div className="rounded-2xl p-1" style={{ ...GLASS, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(0,0,0,0.4)' }}>
+      <div className="rounded-[14px] flex items-end gap-2 px-3 py-1.5" style={{ background: 'rgba(0,0,0,0.2)' }}>
         <textarea
           ref={textareaRef}
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-          placeholder={inputDisabled ? 'Please wait...' : hasChat ? 'Type your message...' : 'Paste your resume or describe yourself...'}
+          placeholder={inputDisabled ? 'Please wait...' : 'Paste experience or type a command...'}
           disabled={inputDisabled}
           rows={1}
           className="flex-1 bg-transparent text-white text-sm placeholder-white/30 resize-none outline-none py-2 leading-relaxed disabled:opacity-40"
-          style={{ maxHeight: 200 }}
+          style={{ maxHeight: 120 }}
         />
         <button
           onClick={handleSend}
@@ -367,128 +331,131 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="relative h-screen flex flex-col overflow-hidden" style={{ fontFamily: FONT }}>
+    <div className="relative h-screen flex flex-col overflow-hidden bg-black" style={{ fontFamily: FONT }}>
+      {/* Background Cosmic Video */}
       <video autoPlay muted loop playsInline className="fixed inset-0 w-full h-full object-cover" style={{ zIndex: 0 }}>
         <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260613_180732_a54afbf6-b30d-470e-861f-669871f09f67.mp4" type="video/mp4" />
       </video>
       <div className="fixed inset-0 bg-black/65" style={{ zIndex: 1 }} />
 
+      {/* Main Layout Layer */}
       <div className="relative flex flex-col h-full" style={{ zIndex: 2 }}>
-
-        <nav className="flex items-center justify-between px-5 sm:px-8 py-4 flex-shrink-0">
+        
+        {/* Navigation Bar */}
+        <nav className="flex items-center justify-between px-5 sm:px-8 py-3.5 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           <span className="text-white text-xl font-bold tracking-wider">GENIE</span>
-          <UserMenu session={session} onHistoryOpen={() => setHistoryOpen(true)} />
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setAiOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-white/90 hover:text-white transition-all"
+              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)' }}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+              AI Assistant
+            </button>
+            <UserMenu session={session} onHistoryOpen={() => setHistoryOpen(true)} />
+          </div>
         </nav>
 
-        {/* ── INITIAL centered view ── */}
-        {!hasChat && (
-          <div className="flex-1 flex flex-col items-center justify-center px-4 overflow-y-auto pb-10">
-            <div className="w-full max-w-2xl flex flex-col items-center gap-8">
-              <div className="text-center">
-                <h1 className="text-white text-3xl sm:text-4xl font-black tracking-tight mb-3">
-                  Hey {firstName}
-                </h1>
-                <p className="text-white/50 text-base leading-relaxed max-w-md mx-auto">
-                  Paste your existing resume and I'll build a professional ATS-ready version instantly. Or just describe yourself.
-                </p>
-              </div>
-              <div className="w-full">{InputBox}</div>
-              <div className="flex flex-wrap justify-center gap-2">
-                {[
-                  "I'm a fresher in Computer Science",
-                  'Software Engineer with 3 years exp',
-                  'Marketing Manager at a startup',
-                  'Data Analyst applying to Google',
-                ].map(s => (
-                  <button key={s} onClick={() => setInput(s)}
-                    className="px-3.5 py-2 rounded-xl text-white/45 hover:text-white text-xs transition-all hover:bg-white/8"
-                    style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
-                    {s}
-                  </button>
-                ))}
-              </div>
+        {/* Builder Viewport */}
+        <main className="flex-1 flex overflow-hidden min-h-0 bg-[#f9fafb]">
+          <div className="flex-1 grid grid-cols-1 lg:grid-cols-6 h-full overflow-hidden">
+            {/* Form Editor panel */}
+            <div className="lg:col-span-3 h-full overflow-y-auto border-r border-gray-200">
+              <ResumeForm />
+            </div>
+            {/* Live PDF Preview panel */}
+            <div className="lg:col-span-3 h-full overflow-y-auto bg-gray-100 flex justify-center items-start py-8">
+              <Resume />
             </div>
           </div>
-        )}
-
-        {/* ── CHAT view ── */}
-        {hasChat && (
-          <main className="flex-1 flex flex-col items-center overflow-hidden min-h-0">
-            <div className="w-full max-w-2xl flex flex-col h-full min-h-0">
-
-              <div className="flex-1 overflow-y-auto px-3 sm:px-5 py-4 sm:py-6" style={{ minHeight: 0 }}>
-                {messages.map((m, i) => <Bubble key={i} role={m.role} text={m.text} userInitial={userInitial} />)}
-                {loading && <Bubble role="ai" text="" isLoading userInitial={userInitial} />}
-
-                {/* Resume ready card */}
-                {phase === 'done' && resumeHtml && (
-                  <div className="flex justify-start mb-4 items-end gap-2 sm:gap-3">
-                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.12)' }}>
-                      <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white/70" />
-                    </div>
-                    <div className="rounded-2xl rounded-bl-sm p-4 flex flex-col gap-3"
-                      style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.09)', boxShadow: '0 4px 24px rgba(0,0,0,0.2)', minWidth: 220 }}>
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-white/60" />
-                        <span className="text-white/90 text-sm font-semibold">Resume Ready</span>
-                        <span className="text-white/30 text-xs">&middot; ATS Optimized</span>
-                      </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => setPreviewOpen(true)}
-                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-white/80 text-xs font-medium transition-all hover:bg-white/10"
-                          style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)' }}>
-                          <Eye className="w-3.5 h-3.5" /> Preview
-                        </button>
-                        <DownloadButton resumeHtml={resumeHtml} userName={userData?.name} />
-                      </div>
-                      <button onClick={handleRestart} className="text-white/25 hover:text-white/50 text-xs text-center transition-colors">Build a new resume</button>
-                    </div>
-                  </div>
-                )}
-                <div ref={bottomRef} />
-              </div>
-
-              <div className="px-3 sm:px-5 pb-4 sm:pb-6 flex-shrink-0">
-                {phase === 'done' ? (
-                  <div className="text-center">
-                    <button onClick={handleRestart} className="text-white/40 hover:text-white text-sm transition-colors">
-                      + Start a new resume
-                    </button>
-                  </div>
-                ) : InputBox}
-              </div>
-
-            </div>
-          </main>
-        )}
-
+        </main>
       </div>
 
-      {/* RESUME PREVIEW MODAL */}
-      {previewOpen && resumeHtml && (
-        <div className="fixed inset-0 z-50 flex flex-col" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}>
-          <div className="flex items-center justify-between px-5 py-3 flex-shrink-0" style={{ background: 'rgba(0,0,0,0.6)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-            <span className="text-white font-semibold text-sm">Resume Preview</span>
-            <div className="flex items-center gap-3">
-              <DownloadButton resumeHtml={resumeHtml} userName={userData?.name} />
-              <button onClick={() => setPreviewOpen(false)} className="text-white/50 hover:text-white transition-colors"><X className="w-5 h-5" /></button>
+      {/* Floating Sparkles AI Coach Bubble */}
+      <button
+        onClick={() => setAiOpen(true)}
+        className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 group"
+        style={{
+          background: 'linear-gradient(135deg, #34d399, #06b6d4)',
+          border: '1px solid rgba(255, 255, 255, 0.25)',
+          boxShadow: '0 0 20px rgba(52, 211, 153, 0.5)',
+        }}
+      >
+        <Sparkles className="w-6 h-6 text-black group-hover:rotate-12 transition-transform duration-300" />
+      </button>
+
+      {/* AI Assistant Slide-out Drawer */}
+      {aiOpen && (
+        <>
+          {/* Backdrop blur */}
+          <div
+            onClick={() => setAiOpen(false)}
+            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity duration-300"
+          />
+          {/* Drawer Panel container */}
+          <div
+            className="fixed top-0 right-0 h-full w-full max-w-md z-50 flex flex-col shadow-2xl transition-transform duration-300"
+            style={{
+              background: 'rgba(10, 10, 10, 0.88)',
+              backdropFilter: 'blur(40px)',
+              WebkitBackdropFilter: 'blur(40px)',
+              borderLeft: '1px solid rgba(255, 255, 255, 0.1)',
+            }}
+          >
+            {/* Drawer Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-emerald-400" />
+                <span className="text-white font-bold text-sm tracking-wide">Genie AI Assistant</span>
+              </div>
+              <button
+                onClick={() => setAiOpen(false)}
+                className="text-white/40 hover:text-white p-1 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Chat Area */}
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+              {messages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center px-6 py-12">
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
+                       style={{ background: 'linear-gradient(135deg, rgba(52,211,153,0.1), rgba(6,182,212,0.1))', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <Sparkles className="w-6 h-6 text-emerald-400" />
+                  </div>
+                  <p className="text-white font-semibold text-sm mb-1.5">Talk to Genie</p>
+                  <p className="text-white/45 text-xs leading-relaxed max-w-xs mx-auto">
+                    Paste your raw resume text, describe yourself, or request structural suggestions. I will generate your base resume and populate it straight into the builder forms!
+                  </p>
+                </div>
+              ) : (
+                messages.map((m, i) => (
+                  <Bubble key={i} role={m.role} text={m.text} userInitial={userInitial} />
+                ))
+              )}
+              {loading && <Bubble role="ai" text="" isLoading userInitial={userInitial} />}
+              <div ref={bottomRef} />
+            </div>
+
+            {/* Drawer Input */}
+            <div className="p-4 border-t border-white/10">
+              {InputBox}
             </div>
           </div>
-          <div className="flex-1 overflow-auto flex items-start justify-center p-4">
-            <iframe srcDoc={resumeHtml}
-              style={{ width: '210mm', minHeight: '297mm', border: 'none', boxShadow: '0 8px 48px rgba(0,0,0,0.6)', background: '#fff', borderRadius: '2px' }}
-              title="Resume Preview" />
-          </div>
-        </div>
+        </>
       )}
 
+      {/* History Slide-out Panel */}
       <HistoryPanel
         open={historyOpen}
         onClose={() => setHistoryOpen(false)}
         history={history}
         onSelect={item => {
-          setResumeHtml(item.html);
+          if (item.resume) {
+            dispatch(setResume(item.resume));
+          }
           setPhase('done');
           setUserData({ name: item.name, role: item.role });
           setMessages([{ role: 'ai', text: `Here's the resume for **${item.role}** — loaded from history.` }]);
