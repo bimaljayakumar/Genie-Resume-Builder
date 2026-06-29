@@ -34,13 +34,13 @@ export const ResumeForm = () => {
   return (
     <div
       className={cx(
-        "flex justify-center scrollbar-thin scrollbar-track-transparent md:h-[calc(100vh-var(--top-nav-bar-height))] md:justify-end md:overflow-y-scroll",
+        "flex justify-center scrollbar-thin scrollbar-track-transparent md:h-[calc(100vh-var(--top-nav-bar-height))] md:justify-center md:overflow-y-scroll w-full",
         isHover ? "scrollbar-thumb-white/20" : "scrollbar-thumb-white/10"
       )}
       onMouseOver={() => setIsHover(true)}
       onMouseLeave={() => setIsHover(false)}
     >
-      <section className="flex max-w-2xl flex-col gap-8 p-[var(--resume-padding)]">
+      <section className="flex w-full max-w-4xl flex-col gap-8 p-[var(--resume-padding)]">
         <ProfileForm />
         {formsOrder.map((form) => {
           const Component = formTypeToComponent[form];
@@ -49,7 +49,6 @@ export const ResumeForm = () => {
         <ThemeForm />
         <br />
       </section>
-      <FlexboxSpacer maxWidth={50} className="hidden md:block" />
     </div>
   );
 };
