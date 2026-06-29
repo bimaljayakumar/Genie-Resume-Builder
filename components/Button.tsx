@@ -36,7 +36,7 @@ export const IconButton = ({
     <Button
       type="button"
       className={cx(
-        "rounded-full outline-none hover:bg-gray-100 focus-visible:bg-gray-100",
+        "rounded-full outline-none text-white/60 hover:text-white hover:bg-white/10 focus-visible:bg-white/10 transition-colors",
         size === "medium" ? "p-1.5" : "p-1",
         className
       )}

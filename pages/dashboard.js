@@ -358,14 +358,14 @@ export default function Dashboard() {
         </nav>
 
         {/* Builder Viewport */}
-        <main className="flex-1 flex overflow-hidden min-h-0 bg-[#f9fafb]">
+        <main className="flex-1 flex overflow-hidden min-h-0 bg-transparent">
           <div className="flex-1 grid grid-cols-1 lg:grid-cols-6 h-full overflow-hidden">
             {/* Form Editor panel */}
-            <div className="lg:col-span-3 h-full overflow-y-auto border-r border-gray-200">
+            <div className="lg:col-span-3 h-full overflow-y-auto border-r border-white/5 bg-black/15 backdrop-blur-[2px]">
               <ResumeForm />
             </div>
             {/* Live PDF Preview panel */}
-            <div className="lg:col-span-3 h-full overflow-y-auto bg-gray-100 flex justify-center items-start py-8">
+            <div className="lg:col-span-3 h-full overflow-y-auto bg-black/40 flex justify-center items-start py-8 scrollbar-thin">
               <Resume />
             </div>
           </div>
