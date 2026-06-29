@@ -367,7 +367,7 @@ export default function Dashboard() {
 
         {/* Builder Viewport */}
         <main className="flex-1 flex overflow-hidden min-h-0 bg-transparent justify-center">
-          <div className="w-full h-full overflow-hidden bg-black/15 backdrop-blur-[2px] border-r border-white/5">
+          <div className="w-full h-full overflow-hidden bg-transparent border-r border-white/5">
             <ResumeForm />
           </div>
         </main>
