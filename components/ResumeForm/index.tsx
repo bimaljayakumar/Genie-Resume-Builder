@@ -40,14 +40,13 @@ export const ResumeForm = () => {
       onMouseOver={() => setIsHover(true)}
       onMouseLeave={() => setIsHover(false)}
     >
-      <section className="flex w-full max-w-4xl flex-col gap-8 p-[var(--resume-padding)]">
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-6xl p-[var(--resume-padding)] items-start">
         <ProfileForm />
         {formsOrder.map((form) => {
           const Component = formTypeToComponent[form];
           return <Component key={form} />;
         })}
         <ThemeForm />
-        <br />
       </section>
     </div>
   );
