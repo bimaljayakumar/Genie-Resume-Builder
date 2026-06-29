@@ -336,7 +336,7 @@ export default function Dashboard() {
       <video autoPlay muted loop playsInline className="fixed inset-0 w-full h-full object-cover" style={{ zIndex: 0 }}>
         <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260613_180732_a54afbf6-b30d-470e-861f-669871f09f67.mp4" type="video/mp4" />
       </video>
-      <div className="fixed inset-0 bg-black/65" style={{ zIndex: 1 }} />
+      <div className="fixed inset-0 bg-black/55" style={{ zIndex: 1 }} />
 
       {/* Main Layout Layer */}
       <div className="relative flex flex-col h-full" style={{ zIndex: 2 }}>
@@ -367,7 +367,7 @@ export default function Dashboard() {
 
         {/* Builder Viewport */}
         <main className="flex-1 flex overflow-hidden min-h-0 bg-transparent justify-center">
-          <div className="w-full h-full overflow-hidden bg-black/15 backdrop-blur-[2px] border-r border-white/5">
+          <div className="w-full h-full overflow-hidden bg-transparent border-r border-white/5">
             <ResumeForm />
           </div>
         </main>

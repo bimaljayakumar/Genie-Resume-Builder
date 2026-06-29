@@ -40,11 +40,13 @@ export const BaseForm = ({
   className?: string;
 }) => (
   <section
-    className={`flex flex-col gap-3 rounded-2xl border border-white/10 p-6 pt-4 shadow-2xl transition-opacity duration-200 ${className}`}
+    className={`flex flex-col gap-3 rounded-3xl p-6 pt-4 transition-opacity duration-200 ${className}`}
     style={{
-      background: 'rgba(255, 255, 255, 0.05)',
-      backdropFilter: 'blur(20px)',
-      WebkitBackdropFilter: 'blur(20px)',
+      background: 'rgba(255, 255, 255, 0.07)',
+      backdropFilter: 'blur(32px)',
+      WebkitBackdropFilter: 'blur(32px)',
+      border: '1px solid rgba(255, 255, 255, 0.13)',
+      boxShadow: '0 8px 48px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255, 255, 255, 0.12)',
     }}
   >
     {children}
