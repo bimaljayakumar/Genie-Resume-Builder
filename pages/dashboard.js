@@ -203,7 +203,6 @@ export default function Dashboard() {
   const [history, setHistory] = useState([]);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
-  const [previewOpen, setPreviewOpen] = useState(false);
 
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
@@ -347,7 +346,7 @@ export default function Dashboard() {
           <span className="text-white text-xl font-bold tracking-wider">GENIE</span>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setPreviewOpen(true)}
+              onClick={() => window.open('/preview', '_blank')}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-white/90 hover:text-white transition-all hover:bg-white/10"
               style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)' }}
             >
@@ -368,7 +367,7 @@ export default function Dashboard() {
 
         {/* Builder Viewport */}
         <main className="flex-1 flex overflow-hidden min-h-0 bg-transparent justify-center">
-          <div className="w-full h-full overflow-y-auto bg-black/15 backdrop-blur-[2px] border-r border-white/5 scrollbar-thin">
+          <div className="w-full h-full overflow-hidden bg-black/15 backdrop-blur-[2px] border-r border-white/5">
             <ResumeForm />
           </div>
         </main>
@@ -466,27 +465,6 @@ export default function Dashboard() {
         onClear={() => { const key = `genie_history_${session?.user?.email}`; setHistory([]); localStorage.removeItem(key); }}
       />
 
-      {/* Fullscreen Preview Modal */}
-      {previewOpen && (
-        <div className="fixed inset-0 z-50 flex flex-col" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}>
-          {/* Modal Header */}
-          <div className="flex items-center justify-between px-5 py-4 flex-shrink-0" style={{ background: 'rgba(0,0,0,0.6)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-            <span className="text-white font-semibold text-sm">Resume Preview</span>
-            <button
-              onClick={() => setPreviewOpen(false)}
-              className="text-white/50 hover:text-white p-1 rounded-lg transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-          {/* Modal Content */}
-          <div className="flex-1 overflow-auto bg-black/40 flex justify-center items-start py-8">
-            <div className="w-full max-w-4xl h-full flex flex-col justify-between overflow-hidden">
-              <Resume />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
