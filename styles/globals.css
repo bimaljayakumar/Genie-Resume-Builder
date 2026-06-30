@@ -75,3 +75,89 @@
   --resume-padding: 1.5rem;
 }
 
+/* Uiverse Button adaptation for navbar */
+.uiverse-btn {
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 12px;
+  border: none;
+  padding: 1.5px;
+  background: radial-gradient(circle 50px at 80% -10%, #ffffff, #181b1b);
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.uiverse-btn::after {
+  content: "";
+  position: absolute;
+  width: 65%;
+  height: 60%;
+  border-radius: 120px;
+  top: 0;
+  right: 0;
+  box-shadow: 0 0 15px #ffffff25;
+  z-index: 1;
+}
+.uiverse-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.15);
+}
+.uiverse-btn:active {
+  transform: translateY(0);
+}
+
+.uiverse-blob1 {
+  position: absolute;
+  width: 40px;
+  height: 100%;
+  border-radius: 12px;
+  bottom: 0;
+  left: 0;
+  background: radial-gradient(
+    circle 40px at 0% 100%,
+    #34d399,
+    #06b6d480,
+    transparent
+  );
+  box-shadow: -5px 5px 15px rgba(52, 211, 153, 0.15);
+  z-index: 2;
+}
+
+.uiverse-inner {
+  padding: 6px 14px;
+  border-radius: 11px;
+  color: #fff;
+  z-index: 3;
+  position: relative;
+  background: radial-gradient(circle 50px at 80% -50%, #444444, #0f1111);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  height: 100%;
+  transition: background 0.3s;
+}
+
+.uiverse-inner::before {
+  content: "";
+  width: 100%;
+  height: 100%;
+  left: 0;
+  top: 0;
+  border-radius: 11px;
+  background: radial-gradient(
+    circle 40px at 0% 100%,
+    #34d39910,
+    #06b6d405,
+    transparent
+  );
+  position: absolute;
+}
+
+.uiverse-btn:hover .uiverse-inner {
+  background: radial-gradient(circle 50px at 80% -50%, #555555, #141717);
+}
+

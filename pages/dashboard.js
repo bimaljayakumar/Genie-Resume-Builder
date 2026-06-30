@@ -347,19 +347,23 @@ export default function Dashboard() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => window.open('/preview', '_blank')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-white/90 hover:text-white transition-all hover:bg-white/10"
-              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)' }}
+              className="uiverse-btn"
             >
-              <Eye className="w-3.5 h-3.5 text-emerald-400" />
-              Preview
+              <div className="uiverse-blob1"></div>
+              <div className="uiverse-inner">
+                <Eye className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Preview</span>
+              </div>
             </button>
             <button
               onClick={() => setAiOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-white/90 hover:text-white transition-all hover:bg-white/10"
-              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)' }}
+              className="uiverse-btn"
             >
-              <Sparkles className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-              AI Assistant
+              <div className="uiverse-blob1"></div>
+              <div className="uiverse-inner">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+                <span>AI Assistant</span>
+              </div>
             </button>
             <UserMenu session={session} onHistoryOpen={() => setHistoryOpen(true)} />
           </div>
@@ -376,14 +380,22 @@ export default function Dashboard() {
       {/* Floating Sparkles AI Coach Bubble */}
       <button
         onClick={() => setAiOpen(true)}
-        className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 group"
+        className="fixed bottom-6 right-6 z-40 w-11 h-11 rounded-full flex items-center justify-center shadow-2xl backdrop-blur-md transition-all duration-300 hover:scale-110 active:scale-95 group"
         style={{
-          background: 'linear-gradient(135deg, #34d399, #06b6d4)',
-          border: '1px solid rgba(255, 255, 255, 0.25)',
-          boxShadow: '0 0 20px rgba(52, 211, 153, 0.5)',
+          background: 'rgba(59, 130, 246, 0.15)',
+          border: '1px solid rgba(59, 130, 246, 0.35)',
+          boxShadow: '0 0 15px rgba(59, 130, 246, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.boxShadow = '0 0 25px rgba(59, 130, 246, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.2)';
+          e.currentTarget.style.background = 'rgba(59, 130, 246, 0.25)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.boxShadow = '0 0 15px rgba(59, 130, 246, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)';
+          e.currentTarget.style.background = 'rgba(59, 130, 246, 0.15)';
         }}
       >
-        <Sparkles className="w-6 h-6 text-black group-hover:rotate-12 transition-transform duration-300" />
+        <Sparkles className="w-5 h-5 text-blue-400 group-hover:text-blue-300 group-hover:rotate-12 transition-all duration-300" />
       </button>
 
       {/* AI Assistant Slide-out Drawer */}
