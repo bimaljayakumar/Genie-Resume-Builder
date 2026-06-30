@@ -440,26 +440,6 @@ export default function Dashboard() {
         </main>
       </div>
 
-      {/* Floating Sparkles AI Coach Bubble */}
-      <button
-        onClick={() => setAiOpen(true)}
-        className="fixed bottom-6 right-6 z-40 w-11 h-11 rounded-full flex items-center justify-center shadow-2xl backdrop-blur-md transition-all duration-300 hover:scale-110 active:scale-95 group"
-        style={{
-          background: 'rgba(59, 130, 246, 0.15)',
-          border: '1px solid rgba(59, 130, 246, 0.35)',
-          boxShadow: '0 0 15px rgba(59, 130, 246, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.boxShadow = '0 0 25px rgba(59, 130, 246, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.2)';
-          e.currentTarget.style.background = 'rgba(59, 130, 246, 0.25)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.boxShadow = '0 0 15px rgba(59, 130, 246, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)';
-          e.currentTarget.style.background = 'rgba(59, 130, 246, 0.15)';
-        }}
-      >
-        <Sparkles className="w-5 h-5 text-blue-400 group-hover:text-blue-300 group-hover:rotate-12 transition-all duration-300" />
-      </button>
 
       {/* AI Assistant Slide-out Drawer */}
       {aiOpen && (
