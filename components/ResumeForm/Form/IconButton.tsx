@@ -1,12 +1,5 @@
 import { IconButton } from "components/Button";
-import {
-  EyeIcon,
-  EyeSlashIcon,
-  ArrowSmallUpIcon,
-  ArrowSmallDownIcon,
-  TrashIcon,
-  ListBulletIcon,
-} from "@heroicons/react/24/outline";
+import { Eye, EyeOff, ChevronUp, ChevronDown, Trash2, List } from "lucide-react";
 
 export const ShowIconButton = ({
   show,
@@ -19,11 +12,11 @@ export const ShowIconButton = ({
   const onClick = () => {
     setShow(!show);
   };
-  const Icon = show ? EyeIcon : EyeSlashIcon;
+  const Icon = show ? Eye : EyeOff;
 
   return (
     <IconButton onClick={onClick} tooltipText={tooltipText}>
-      <Icon className="h-6 w-6 text-white/60 group-hover:text-emerald-400 transition-colors" aria-hidden="true" />
+      <Icon className="h-[18px] w-[18px] text-white/60 group-hover:text-emerald-400 transition-colors" strokeWidth={2} aria-hidden="true" />
       <span className="sr-only">{tooltipText}</span>
     </IconButton>
   );
@@ -40,8 +33,8 @@ export const MoveIconButton = ({
   onClick: (type: MoveIconButtonType) => void;
 }) => {
   const tooltipText = type === "up" ? "Move up" : "Move down";
-  const sizeClassName = size === "medium" ? "h-6 w-6" : "h-4 w-4";
-  const Icon = type === "up" ? ArrowSmallUpIcon : ArrowSmallDownIcon;
+  const sizeClassName = size === "medium" ? "h-[18px] w-[18px]" : "h-[14px] w-[14px]";
+  const Icon = type === "up" ? ChevronUp : ChevronDown;
 
   return (
     <IconButton
@@ -49,7 +42,7 @@ export const MoveIconButton = ({
       tooltipText={tooltipText}
       size={size}
     >
-      <Icon className={`${sizeClassName} text-white/60 group-hover:text-emerald-400 transition-colors`} aria-hidden="true" />
+      <Icon className={`${sizeClassName} text-white/60 group-hover:text-emerald-400 transition-colors`} strokeWidth={2} aria-hidden="true" />
       <span className="sr-only">{tooltipText}</span>
     </IconButton>
   );
@@ -64,7 +57,7 @@ export const DeleteIconButton = ({
 }) => {
   return (
     <IconButton onClick={onClick} tooltipText={tooltipText} size="small">
-      <TrashIcon className="h-4 w-4 text-white/60 group-hover:text-red-400 transition-colors" aria-hidden="true" />
+      <Trash2 className="h-[14px] w-[14px] text-white/60 group-hover:text-red-400 transition-colors" strokeWidth={2} aria-hidden="true" />
       <span className="sr-only">{tooltipText}</span>
     </IconButton>
   );
@@ -86,12 +79,13 @@ export const BulletListIconButton = ({
       onClick={() => onClick(!showBulletPoints)}
       tooltipText={tooltipText}
       size="small"
-      className={showBulletPoints ? "!bg-emerald-400/20 !text-emerald-400" : ""}
+      className={showBulletPoints ? "!bg-emerald-400/15 !border-emerald-400/30 !text-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.2)]" : ""}
     >
-      <ListBulletIcon
-        className={`h-4 w-4 ${
+      <List
+        className={`h-[14px] w-[14px] ${
           showBulletPoints ? "text-emerald-400" : "text-white/60 group-hover:text-emerald-400 transition-colors"
         }`}
+        strokeWidth={2.2}
         aria-hidden="true"
       />
       <span className="sr-only">{tooltipText}</span>
