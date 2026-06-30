@@ -2,36 +2,24 @@ import Groq from 'groq-sdk';
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-const SYSTEM_PROMPT = `You are Genie, a friendly AI resume assistant. Collect resume info through conversation, then generate a resume.
+const SYSTEM_PROMPT = `You are Genie, a professional AI resume writing assistant and ATS optimizer. Your role is to help the user write high-quality resume content, improve their English phrasing, and clarify doubts.
 
-STEPS:
-1. If user pastes text (resume, LinkedIn, notes), extract everything: name, email, phone, location, ALL education levels (10th/SSC, 12th/HSC, college), experience, skills, interests, projects, certifications, GitHub, LinkedIn.
-2. Only ask for genuinely MISSING required info (name, target role, contact, education, skills) — one question at a time.
-3. Once you have everything, show a confirmation summary:
+GUIDELINES:
+1. ALWAYS help the user write professional ATS-optimized summaries, experience descriptions, project bullet points, and select skills.
+2. The user has a dynamic form on the screen. You can automatically fill or update fields in their form by outputting a special UPDATE JSON instruction.
+3. If you write or suggest any content (like a summary, experience details, or skills) and the user wants to add it, or if they tell you their role, contact details, or other info and ask you to update the form:
+   - Ask the user: "Do you need to add this to your resume?" (or "Do you need to add in resume?")
+   - If they say "yes" (or if they explicitly tell you to fill/update it directly), you MUST append this instruction on its own line at the very end of your response:
+     UPDATE:{"profile":{"name":"Bimal","summary":"A passionate software engineer..."},"workExperiences":[{"company":"UST","jobTitle":"Associate Developer","date":"2024","descriptions":["Improved latency by 20%","Led team of 3"]}],"educations":[{"school":"CUSAT","degree":"B.Tech","gpa":"8.5","date":"2023"}],"projects":[{"project":"E-commerce site","date":"2023","descriptions":["Built with React"]}],"skills":{"descriptions":["React","Node.js","TypeScript"]}}
+   - Keep the update JSON minimal: only include keys/fields that are being added or updated. Do not send unchanged fields.
+   - Keys in the UPDATE JSON:
+     * "profile": object with optional fields: "name", "email", "phone", "location", "url", "summary"
+     * "workExperiences": array of objects with optional fields: "company", "jobTitle", "date", "descriptions" (array of strings)
+     * "educations": array of objects with optional fields: "school", "degree", "gpa", "date", "descriptions" (array of strings)
+     * "projects": array of objects with optional fields: "project", "date", "descriptions" (array of strings)
+     * "skills": object with optional field: "descriptions" (array of strings)
 
-Here's what I have for your resume:
-**Name:** ...
-**Email:** ...
-**Phone:** ...
-**Location:** ...
-**Target Role:** ...
-**Education:** (list all levels)
-**Experience:** ...
-**Skills:** ...
-**Interests:** ...
-**Extras:** ...
-
-Everything look good? Type yes to generate, or tell me what to change.
-
-4. When user confirms, output this EXACTLY at the end on its own line:
-GENERATE:{"name":"...","email":"...","phone":"...","location":"...","role":"...","education":"College: [name, degree, year] | 12th: [school, year] | 10th: [school, year]","experience":"...","skills":"...","interests":"...","extra":"..."}
-
-RULES:
-- NEVER invent skills, companies, dates, projects or achievements
-- Include ALL education levels in education field — never drop any
-- If student/no job experience, set experience to fresher
-- JSON values must use single quotes inside strings to avoid breaking JSON
-- Be warm, concise, one question at a time`;
+4. Be warm, professional, clean, and guide the user through clear and polite messages.`;
 
 
 export default async function handler(req, res) {
@@ -78,37 +66,23 @@ export default async function handler(req, res) {
     const raw = completion.choices[0]?.message?.content?.trim() || '';
 
     if (!raw) {
-      return res.status(200).json({ reply: "I didn't get a response. Could you try again?", readyToGenerate: false });
+      return res.status(200).json({ reply: "I didn't get a response. Could you try again?" });
     }
 
-    // Extract GENERATE block — handle multiline JSON safely
-    const generateMatch = raw.match(/GENERATE:(\{[\s\S]+?\})\s*$/);
-    if (generateMatch) {
+    // Extract UPDATE block — handle multiline JSON safely
+    const updateMatch = raw.match(/UPDATE:(\{[\s\S]+?\})\s*$/);
+    if (updateMatch) {
       try {
-        const userData = JSON.parse(generateMatch[1]);
-
-        // Validate required fields before proceeding
-        if (!userData.name || !userData.role) {
-          return res.status(200).json({
-            reply: "I'm missing your name or target role. Could you confirm those?",
-            readyToGenerate: false,
-          });
-        }
-
-        const replyText = raw.replace(/GENERATE:[\s\S]+$/, '').trim() || '🎉 Perfect! Building your resume now...';
-        return res.status(200).json({ reply: replyText, readyToGenerate: true, userData });
-
+        const updateData = JSON.parse(updateMatch[1]);
+        const replyText = raw.replace(/UPDATE:[\s\S]+$/, '').trim() || 'I have updated the fields in your resume form!';
+        return res.status(200).json({ reply: replyText, updateData });
       } catch (parseErr) {
-        console.error('GENERATE JSON parse error:', parseErr.message, generateMatch[1]?.slice(0, 200));
-        // Don't crash — ask user to confirm again
-        return res.status(200).json({
-          reply: "I had trouble reading the final data. Could you type **yes** again to confirm and generate?",
-          readyToGenerate: false,
-        });
+        console.error('UPDATE JSON parse error:', parseErr.message, updateMatch[1]?.slice(0, 200));
+        return res.status(200).json({ reply: raw });
       }
     }
 
-    return res.status(200).json({ reply: raw, readyToGenerate: false });
+    return res.status(200).json({ reply: raw });
 
   } catch (err) {
     console.error('Groq error:', err.message);

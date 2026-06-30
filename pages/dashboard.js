@@ -2,9 +2,17 @@ import { useState, useRef, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import { Send, Sparkles, LogOut, ChevronDown, Loader2, History, X, Clock, Trash2, Eye } from 'lucide-react';
-import { useAppDispatch } from 'lib/redux/hooks';
-import { setResume } from 'lib/redux/resumeSlice';
-import { mapBuildResumeToOpenResume } from 'lib/redux/aiMapper';
+import { useAppDispatch, useAppSelector } from 'lib/redux/hooks';
+import {
+  setResume,
+  changeProfile,
+  changeWorkExperiences,
+  changeEducations,
+  changeProjects,
+  changeSkills,
+  addSectionInForm,
+} from 'lib/redux/resumeSlice';
+import { store } from 'lib/redux/store';
 import { ResumeForm } from 'components/ResumeForm';
 import { Resume } from 'components/Resume';
 
@@ -194,12 +202,11 @@ export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const resumeState = useAppSelector((state) => state.resume);
 
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [phase, setPhase] = useState('chat');
-  const [userData, setUserData] = useState(null);
   const [history, setHistory] = useState([]);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
@@ -227,7 +234,7 @@ export default function Dashboard() {
 
   async function handleSend() {
     const val = input.trim();
-    if (!val || loading || phase === 'generating') return;
+    if (!val || loading) return;
     setInput('');
     addMsg('user', val);
     chatHistory.current.push({ role: 'user', text: val });
@@ -247,54 +254,89 @@ export default function Dashboard() {
         chatHistory.current.push({ role: 'ai', text: data.reply });
       }
 
-      // AI signalled it has confirmed data ready to generate
-      if (data.readyToGenerate && data.userData) {
-        setUserData(data.userData);
-        setPhase('generating');
-        await generateResume(data.userData);
+      // Handle field-by-field updates from AI
+      if (data.updateData) {
+        const updates = data.updateData;
+
+        // 1. Update Profile
+        if (updates.profile) {
+          Object.entries(updates.profile).forEach(([field, value]) => {
+            dispatch(changeProfile({ field, value }));
+          });
+        }
+
+        // 2. Update Work Experiences
+        if (updates.workExperiences && Array.isArray(updates.workExperiences)) {
+          const currentCount = resumeState.workExperiences.length;
+          updates.workExperiences.forEach((exp, idx) => {
+            if (idx >= currentCount) {
+              dispatch(addSectionInForm({ form: 'workExperiences' }));
+            }
+            Object.entries(exp).forEach(([field, value]) => {
+              dispatch(changeWorkExperiences({ idx, field, value }));
+            });
+          });
+        }
+
+        // 3. Update Educations
+        if (updates.educations && Array.isArray(updates.educations)) {
+          const currentCount = resumeState.educations.length;
+          updates.educations.forEach((edu, idx) => {
+            if (idx >= currentCount) {
+              dispatch(addSectionInForm({ form: 'educations' }));
+            }
+            Object.entries(edu).forEach(([field, value]) => {
+              dispatch(changeEducations({ idx, field, value }));
+            });
+          });
+        }
+
+        // 4. Update Projects
+        if (updates.projects && Array.isArray(updates.projects)) {
+          const currentCount = resumeState.projects.length;
+          updates.projects.forEach((proj, idx) => {
+            if (idx >= currentCount) {
+              dispatch(addSectionInForm({ form: 'projects' }));
+            }
+            Object.entries(proj).forEach(([field, value]) => {
+              dispatch(changeProjects({ idx, field, value }));
+            });
+          });
+        }
+
+        // 5. Update Skills
+        if (updates.skills) {
+          if (Array.isArray(updates.skills.descriptions)) {
+            dispatch(changeSkills({ field: 'descriptions', value: updates.skills.descriptions }));
+          }
+          if (Array.isArray(updates.skills.featuredSkills)) {
+            updates.skills.featuredSkills.forEach((fs, idx) => {
+              if (idx < 6) {
+                dispatch(changeSkills({ field: 'featuredSkills', idx, skill: fs.skill, rating: fs.rating || 4 }));
+              }
+            });
+          }
+        }
+
+        // Save updated snapshot to history
+        setTimeout(() => {
+          const updatedResume = store.getState().resume;
+          const key = `genie_history_${session?.user?.email}`;
+          const entry = {
+            id: Date.now(),
+            ts: Date.now(),
+            name: updatedResume.profile.name || 'Resume Update',
+            role: updatedResume.profile.summary ? 'AI Assisted Summary' : 'Resume Details',
+            resume: updatedResume,
+          };
+          const h = [entry, ...history].slice(0, 20);
+          setHistory(h);
+          localStorage.setItem(key, JSON.stringify(h));
+        }, 100);
       }
     } catch (err) {
       setLoading(false);
       addMsg('ai', 'Something went wrong: ' + (err?.message || 'Please try again.'));
-    }
-  }
-
-  async function generateResume(data) {
-    try {
-      const res = await fetch('/api/build-resume', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userData: data }),
-      });
-      const result = await res.json();
-      if (result.resume) {
-        // Map and load to Redux store
-        const mappedResume = mapBuildResumeToOpenResume(result.resume);
-        dispatch(setResume(mappedResume));
-        setPhase('done');
-
-        // Save to history
-        const key = `genie_history_${session?.user?.email}`;
-        const entry = { id: Date.now(), ts: Date.now(), name: data.name, role: data.role, resume: mappedResume };
-        const h = [entry, ...history].slice(0, 20);
-        setHistory(h);
-        localStorage.setItem(key, JSON.stringify(h));
-
-        setTimeout(() => {
-          const msg = `✅ Done! Your resume for **${data.role}** has been loaded into the builder. You can see it in the preview panel and edit the details directly in the forms!`;
-          addMsg('ai', msg);
-          chatHistory.current.push({ role: 'ai', text: msg });
-        }, 500);
-      } else {
-        setPhase('chat');
-        const msg = res.status === 429
-          ? '⏳ AI rate limit reached. Please wait a few minutes and try again.'
-          : result.error || 'Something went wrong generating the resume. Want to try again?';
-        addMsg('ai', msg);
-      }
-    } catch (err) {
-      setPhase('chat');
-      addMsg('ai', 'Network error while building your resume. Please check your connection and try again.');
     }
   }
 
@@ -303,7 +345,7 @@ export default function Dashboard() {
   }
 
   const userInitial = session?.user?.name?.[0]?.toUpperCase() || 'U';
-  const inputDisabled = loading || phase === 'generating';
+  const inputDisabled = loading;
 
   const InputBox = (
     <div className="rounded-2xl p-1" style={{ ...GLASS, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(0,0,0,0.4)' }}>
@@ -347,23 +389,17 @@ export default function Dashboard() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => window.open('/preview', '_blank')}
-              className="uiverse-btn"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-white/80 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all border border-white/8 shadow-md bg-white/5"
             >
-              <div className="uiverse-blob1"></div>
-              <div className="uiverse-inner">
-                <Eye className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Preview</span>
-              </div>
+              <Eye className="w-3.5 h-3.5 text-blue-400" />
+              Preview
             </button>
             <button
               onClick={() => setAiOpen(true)}
-              className="uiverse-btn"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-white/90 hover:text-white hover:bg-blue-500/10 hover:border-blue-500/30 transition-all border border-blue-500/20 shadow-[0_0_12px_rgba(59,130,246,0.2)] bg-blue-500/5"
             >
-              <div className="uiverse-blob1"></div>
-              <div className="uiverse-inner">
-                <Sparkles className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-                <span>AI Assistant</span>
-              </div>
+              <Sparkles className="w-3.5 h-3.5 text-blue-400 animate-pulse" />
+              AI Assistant
             </button>
             <UserMenu session={session} onHistoryOpen={() => setHistoryOpen(true)} />
           </div>
@@ -469,8 +505,6 @@ export default function Dashboard() {
           if (item.resume) {
             dispatch(setResume(item.resume));
           }
-          setPhase('done');
-          setUserData({ name: item.name, role: item.role });
           setMessages([{ role: 'ai', text: `Here's the resume for **${item.role}** — loaded from history.` }]);
           chatHistory.current = [];
         }}
