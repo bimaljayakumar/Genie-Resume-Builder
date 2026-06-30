@@ -15,7 +15,7 @@ export const ProfileForm = () => {
 
   return (
     <BaseForm>
-      <div className="grid grid-cols-6 gap-3">
+      <div className="grid grid-cols-6 gap-y-4 gap-x-4">
         <Input
           label="Name"
           labelClassName="col-span-full"

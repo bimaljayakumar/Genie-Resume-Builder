@@ -40,7 +40,7 @@ export const BaseForm = ({
   className?: string;
 }) => (
   <section
-    className={`flex flex-col gap-3 rounded-3xl p-6 pt-4 transition-opacity duration-200 ${className}`}
+    className={`flex flex-col gap-4 rounded-3xl p-6 pt-4 transition-opacity duration-200 ${className}`}
     style={{
       background: 'rgba(255, 255, 255, 0.07)',
       backdropFilter: 'blur(32px)',
@@ -174,7 +174,7 @@ export const FormSection = ({
       {idx !== 0 && (
         <div className="mb-4 mt-6 border-t-2 border-dotted border-white/10" />
       )}
-      <div className="relative grid grid-cols-6 gap-3">
+      <div className="relative grid grid-cols-6 gap-y-4 gap-x-4">
         {children}
         <div className={`absolute right-0 top-0 flex gap-0.5 `}>
           <div
