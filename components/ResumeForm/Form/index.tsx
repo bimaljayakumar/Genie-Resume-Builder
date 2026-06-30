@@ -175,41 +175,40 @@ export const FormSection = ({
         <div className="mb-4 mt-6 border-t-2 border-dotted border-white/10" />
       )}
       <div className="relative grid grid-cols-6 gap-y-4 gap-x-4">
-        {children}
-        <div className={`absolute right-0 top-0 flex gap-0.5 `}>
-          <div
-            className={`transition-all duration-300 ${
-              showMoveUp ? "" : "invisible opacity-0"
-            } ${showMoveDown ? "" : "-mr-6"}`}
-          >
-            <MoveIconButton
-              type="up"
-              size="small"
-              onClick={() => handleMoveClick("up")}
-            />
-          </div>
-          <div
-            className={`transition-all duration-300 ${
-              showMoveDown ? "" : "invisible opacity-0"
-            }`}
-          >
-            <MoveIconButton
-              type="down"
-              size="small"
-              onClick={() => handleMoveClick("down")}
-            />
-          </div>
-          <div
-            className={`transition-all duration-300 ${
-              showDelete ? "" : "invisible opacity-0"
-            }`}
-          >
-            <DeleteIconButton
-              onClick={handleDeleteClick}
-              tooltipText={deleteButtonTooltipText}
-            />
+        <div className="col-span-full flex items-center justify-between pb-1">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-white/40">
+            {form === "workExperiences"
+              ? `Job #${idx + 1}`
+              : form === "educations"
+              ? `Education #${idx + 1}`
+              : form === "projects"
+              ? `Project #${idx + 1}`
+              : `Item #${idx + 1}`}
+          </span>
+          <div className="flex items-center gap-2">
+            {showMoveUp && (
+              <MoveIconButton
+                type="up"
+                size="small"
+                onClick={() => handleMoveClick("up")}
+              />
+            )}
+            {showMoveDown && (
+              <MoveIconButton
+                type="down"
+                size="small"
+                onClick={() => handleMoveClick("down")}
+              />
+            )}
+            {showDelete && (
+              <DeleteIconButton
+                onClick={handleDeleteClick}
+                tooltipText={deleteButtonTooltipText}
+              />
+            )}
           </div>
         </div>
+        {children}
       </div>
     </>
   );

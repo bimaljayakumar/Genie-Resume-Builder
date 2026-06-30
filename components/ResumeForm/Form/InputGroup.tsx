@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import ContentEditable from "react-contenteditable";
 import { useAutosizeTextareaHeight } from "lib/hooks/useAutosizeTextareaHeight";
+import { BulletListIconButton } from "components/ResumeForm/Form/IconButton";
 
 interface InputProps<K extends string, V extends string | string[]> {
   label: string;
@@ -82,7 +83,10 @@ export const Textarea = <T extends string>({
 };
 
 export const BulletListTextarea = <T extends string>(
-  props: InputProps<T, string[]> & { showBulletPoints?: boolean }
+  props: InputProps<T, string[]> & {
+    showBulletPoints?: boolean;
+    onBulletToggle?: (value: boolean) => void;
+  }
 ) => {
   const [showFallback, setShowFallback] = useState(false);
 
@@ -120,10 +124,23 @@ const BulletListTextareaGeneral = <T extends string>({
   placeholder,
   onChange,
   showBulletPoints = true,
-}: InputProps<T, string[]> & { showBulletPoints?: boolean }) => {
+  onBulletToggle,
+}: InputProps<T, string[]> & {
+  showBulletPoints?: boolean;
+  onBulletToggle?: (value: boolean) => void;
+}) => {
   const html = getHTMLFromBulletListStrings(bulletListStrings);
   return (
-    <InputGroupWrapper label={label} className={wrapperClassName}>
+    <div className={`flex flex-col gap-1 ${wrapperClassName}`}>
+      <div className="flex items-center gap-1.5">
+        <span className="text-sm font-semibold tracking-wide text-white">{label}</span>
+        {onBulletToggle && (
+          <BulletListIconButton
+            showBulletPoints={showBulletPoints}
+            onClick={onBulletToggle}
+          />
+        )}
+      </div>
       <ContentEditable
         contentEditable={true}
         className={`${INPUT_CLASS_NAME} cursor-text [&>div]:list-item ${
@@ -141,7 +158,7 @@ const BulletListTextareaGeneral = <T extends string>({
         }}
         html={html}
       />
-    </InputGroupWrapper>
+    </div>
   );
 };
 
@@ -196,26 +213,42 @@ const BulletListTextareaFallback = <T extends string>({
   placeholder,
   onChange,
   showBulletPoints = true,
-}: InputProps<T, string[]> & { showBulletPoints?: boolean }) => {
+  onBulletToggle,
+}: InputProps<T, string[]> & {
+  showBulletPoints?: boolean;
+  onBulletToggle?: (value: boolean) => void;
+}) => {
   const textareaValue = getTextareaValueFromBulletListStrings(
     bulletListStrings,
     showBulletPoints
   );
+  const textareaRef = useAutosizeTextareaHeight({ value: textareaValue });
 
   return (
-    <Textarea
-      label={label}
-      labelClassName={labelClassName}
-      name={name}
-      value={textareaValue}
-      placeholder={placeholder}
-      onChange={(name, value) => {
-        onChange(
-          name,
-          getBulletListStringsFromTextareaValue(value, showBulletPoints)
-        );
-      }}
-    />
+    <div className={`flex flex-col gap-1 ${labelClassName}`}>
+      <div className="flex items-center gap-1.5">
+        <span className="text-sm font-semibold tracking-wide text-white">{label}</span>
+        {onBulletToggle && (
+          <BulletListIconButton
+            showBulletPoints={showBulletPoints}
+            onClick={onBulletToggle}
+          />
+        )}
+      </div>
+      <textarea
+        ref={textareaRef}
+        name={name}
+        value={textareaValue}
+        placeholder={placeholder}
+        onChange={(e) => {
+          onChange(
+            name,
+            getBulletListStringsFromTextareaValue(e.target.value, showBulletPoints)
+          );
+        }}
+        className={`${INPUT_CLASS_NAME} resize-none overflow-hidden`}
+      />
+    </div>
   );
 };
 
