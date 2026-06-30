@@ -18,10 +18,42 @@ export const ProfileForm = () => {
       <div className="grid grid-cols-6 gap-y-4 gap-x-4">
         <Input
           label="Name"
-          labelClassName="col-span-full"
+          labelClassName="col-span-3"
           name="name"
           placeholder="Bimal Jayakumar"
           value={name}
+          onChange={handleProfileChange}
+        />
+        <Input
+          label="Location"
+          labelClassName="col-span-3"
+          name="location"
+          placeholder="Kochi, Kerala"
+          value={location}
+          onChange={handleProfileChange}
+        />
+        <Input
+          label="Email"
+          labelClassName="col-span-2"
+          name="email"
+          placeholder="bimal@gmail.com"
+          value={email}
+          onChange={handleProfileChange}
+        />
+        <Input
+          label="Phone"
+          labelClassName="col-span-2"
+          name="phone"
+          placeholder="+91 98765 43210"
+          value={phone}
+          onChange={handleProfileChange}
+        />
+        <Input
+          label="Website"
+          labelClassName="col-span-2"
+          name="url"
+          placeholder="linkedin.com/in/bimaljayakumar"
+          value={url}
           onChange={handleProfileChange}
         />
         <Textarea
@@ -30,38 +62,6 @@ export const ProfileForm = () => {
           name="summary"
           placeholder="Aspiring Software Engineer passionate about web development and building AI-driven solutions."
           value={summary}
-          onChange={handleProfileChange}
-        />
-        <Input
-          label="Email"
-          labelClassName="col-span-full"
-          name="email"
-          placeholder="bimal@gmail.com"
-          value={email}
-          onChange={handleProfileChange}
-        />
-        <Input
-          label="Phone"
-          labelClassName="col-span-full"
-          name="phone"
-          placeholder="+91 98765 43210"
-          value={phone}
-          onChange={handleProfileChange}
-        />
-        <Input
-          label="Website"
-          labelClassName="col-span-full"
-          name="url"
-          placeholder="linkedin.com/in/bimaljayakumar"
-          value={url}
-          onChange={handleProfileChange}
-        />
-        <Input
-          label="Location"
-          labelClassName="col-span-full"
-          name="location"
-          placeholder="Kochi, Kerala"
-          value={location}
           onChange={handleProfileChange}
         />
       </div>

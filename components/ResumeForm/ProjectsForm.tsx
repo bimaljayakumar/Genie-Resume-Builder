@@ -43,7 +43,7 @@ export const ProjectsForm = () => {
               placeholder="Kerala Tourism Guide"
               value={project}
               onChange={handleProjectChange}
-              labelClassName="col-span-full"
+              labelClassName="col-span-3"
             />
             <Input
               name="date"
@@ -51,7 +51,7 @@ export const ProjectsForm = () => {
               placeholder="Dec 2023"
               value={date}
               onChange={handleProjectChange}
-              labelClassName="col-span-full"
+              labelClassName="col-span-3"
             />
             <BulletListTextarea
               name="descriptions"

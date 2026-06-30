@@ -51,7 +51,7 @@ export const EducationsForm = () => {
           >
             <Input
               label="School"
-              labelClassName="col-span-full"
+              labelClassName="col-span-3"
               name="school"
               placeholder="Cochin University of Science and Technology (CUSAT)"
               value={school}
@@ -59,7 +59,7 @@ export const EducationsForm = () => {
             />
             <Input
               label="Date"
-              labelClassName="col-span-full"
+              labelClassName="col-span-3"
               name="date"
               placeholder="May 2023"
               value={date}
@@ -67,7 +67,7 @@ export const EducationsForm = () => {
             />
             <Input
               label="Degree & Major"
-              labelClassName="col-span-full"
+              labelClassName="col-span-3"
               name="degree"
               placeholder="Bachelor of Technology in Computer Science"
               value={degree}
@@ -75,7 +75,7 @@ export const EducationsForm = () => {
             />
             <Input
               label="GPA"
-              labelClassName="col-span-full"
+              labelClassName="col-span-3"
               name="gpa"
               placeholder="8.5 / 10"
               value={gpa}
