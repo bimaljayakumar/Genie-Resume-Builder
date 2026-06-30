@@ -34,7 +34,7 @@ export const ProfileForm = () => {
         />
         <Input
           label="Email"
-          labelClassName="col-span-full sm:col-span-4"
+          labelClassName="col-span-full"
           name="email"
           placeholder="bimal@gmail.com"
           value={email}
@@ -42,7 +42,7 @@ export const ProfileForm = () => {
         />
         <Input
           label="Phone"
-          labelClassName="col-span-full sm:col-span-2"
+          labelClassName="col-span-full"
           name="phone"
           placeholder="+91 98765 43210"
           value={phone}
@@ -50,7 +50,7 @@ export const ProfileForm = () => {
         />
         <Input
           label="Website"
-          labelClassName="col-span-full sm:col-span-4"
+          labelClassName="col-span-full"
           name="url"
           placeholder="linkedin.com/in/bimaljayakumar"
           value={url}
@@ -58,7 +58,7 @@ export const ProfileForm = () => {
         />
         <Input
           label="Location"
-          labelClassName="col-span-full sm:col-span-2"
+          labelClassName="col-span-full"
           name="location"
           placeholder="Kochi, Kerala"
           value={location}

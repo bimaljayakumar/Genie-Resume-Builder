@@ -69,7 +69,7 @@ export const SkillsForm = () => {
         {featuredSkills.map(({ skill, rating }, idx) => (
           <FeaturedSkillInput
             key={idx}
-            className="col-span-3"
+            className="col-span-full"
             skill={skill}
             rating={rating}
             setSkillRating={(newSkill, newRating) => {
