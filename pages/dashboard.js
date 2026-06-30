@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/router';
-import { Send, Sparkles, LogOut, ChevronDown, Loader2, History, X, Clock, Trash2, Eye } from 'lucide-react';
+import { Send, Sparkles, LogOut, ChevronDown, Loader2, History, X, Clock, Trash2, Eye, Plus } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from 'lib/redux/hooks';
 import {
   setResume,
@@ -232,6 +232,27 @@ export default function Dashboard() {
     setMessages(prev => [...prev, { role, text }]);
   }
 
+  function handleNewChat() {
+    if (messages.length > 0) {
+      const currentResume = store.getState().resume;
+      const key = `genie_history_${session?.user?.email}`;
+      const entry = {
+        id: Date.now(),
+        ts: Date.now(),
+        name: currentResume.profile.name || 'New Chat Session',
+        role: currentResume.profile.summary ? 'AI Assisted Chat' : 'Resume Chat',
+        resume: currentResume,
+        messages: messages,
+        chatHistory: chatHistory.current,
+      };
+      const h = [entry, ...history].slice(0, 20);
+      setHistory(h);
+      localStorage.setItem(key, JSON.stringify(h));
+    }
+    setMessages([]);
+    chatHistory.current = [];
+  }
+
   async function handleSend() {
     const val = input.trim();
     if (!val || loading) return;
@@ -328,6 +349,12 @@ export default function Dashboard() {
             name: updatedResume.profile.name || 'Resume Update',
             role: updatedResume.profile.summary ? 'AI Assisted Summary' : 'Resume Details',
             resume: updatedResume,
+            messages: [
+              ...messages,
+              { role: 'user', text: val },
+              ...(data.reply ? [{ role: 'ai', text: data.reply }] : [])
+            ],
+            chatHistory: [...chatHistory.current],
           };
           const h = [entry, ...history].slice(0, 20);
           setHistory(h);
@@ -489,7 +516,14 @@ export default function Dashboard() {
             </div>
 
             {/* Drawer Input */}
-            <div className="p-4 border-t border-white/10">
+            <div className="p-4 border-t border-white/10 flex flex-col gap-3">
+              <button
+                onClick={handleNewChat}
+                className="w-full py-2 px-4 rounded-xl text-xs font-semibold text-white/85 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all border border-white/8 shadow-md bg-white/5 flex items-center justify-center gap-1.5"
+              >
+                <Plus className="w-3.5 h-3.5 text-blue-400" />
+                Start New Chat
+              </button>
               {InputBox}
             </div>
           </div>
@@ -505,8 +539,14 @@ export default function Dashboard() {
           if (item.resume) {
             dispatch(setResume(item.resume));
           }
-          setMessages([{ role: 'ai', text: `Here's the resume for **${item.role}** — loaded from history.` }]);
-          chatHistory.current = [];
+          if (item.messages && Array.isArray(item.messages)) {
+            setMessages(item.messages);
+            chatHistory.current = item.chatHistory || [];
+            setAiOpen(true);
+          } else {
+            setMessages([{ role: 'ai', text: `Here's the resume for **${item.role}** — loaded from history.` }]);
+            chatHistory.current = [];
+          }
         }}
         onClear={() => { const key = `genie_history_${session?.user?.email}`; setHistory([]); localStorage.removeItem(key); }}
       />
